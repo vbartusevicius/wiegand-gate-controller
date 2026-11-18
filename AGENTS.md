@@ -1,4 +1,4 @@
-# Agent instructions: Wiegand Gateway
+# Agent instructions: Wiegand Gate Controller (`wiegand-gate-controller`)
 
 ESP32 access-control gateway for doors and entry gates (primary target: **ROGER BH30/610/HS** with **B70/1DC** controller; reference feature set: **ZKAccess C3-100**, simplified and modernised): C++17 firmware (ESP-IDF via PlatformIO), embedded Web UI, Home Assistant MQTT auto-discovery, OTA updates, SKiDL/KiCad 10 PCBs routed with `fastroute`, and CadQuery enclosures ready for **JLCPCB** and **JLC3DP**.
 

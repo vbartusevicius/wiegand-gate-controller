@@ -1,6 +1,6 @@
 (footprint "LED_WS2812B-MINI-V3J"
   (version 20241229)
-  (generator "wiegand-gateway")
+  (generator "wiegand-gate-controller")
   (layer "F.Cu")
   (descr "Worldsemi WS2812B-MINI-V3J addressable RGB LED (C22371519)")
   (attr smd)

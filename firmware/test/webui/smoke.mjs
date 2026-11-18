@@ -9,7 +9,7 @@ async function req(path, opts) {
 }
 
 const html = await (await req("/")).text();
-assert.ok(html.includes("Wiegand Gateway"));
+assert.ok(html.includes("Wiegand Gate Controller"));
 await req("/app.css");
 await req("/app.js");
 

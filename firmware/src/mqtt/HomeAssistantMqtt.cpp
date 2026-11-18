@@ -15,7 +15,7 @@ void fillDevice(JsonObject dev, const core::DeviceConfig& cfg, const std::string
     JsonArray ids = dev["identifiers"].to<JsonArray>();
     ids.add(node_id);
     dev["name"] = cfg.device_name;
-    dev["manufacturer"] = "Wiegand Gateway";
+    dev["manufacturer"] = "Wiegand Gate Controller";
     dev["model"] = "WG-C6 (Gate/Door)";
     dev["sw_version"] = fw_version;
 }

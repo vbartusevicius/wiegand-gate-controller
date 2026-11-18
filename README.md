@@ -1,4 +1,4 @@
-# Wiegand Gateway
+# Wiegand Gate Controller (`wiegand-gate-controller`)
 
 Compact **ESP32-C6** Wiegand access-control gateway for sliding/swing gates and doors — connects standard 12 V Wiegand card/UHF/keypad readers to gate controllers, door strikes, maglocks, and **Home Assistant** over Wi-Fi/MQTT.
 

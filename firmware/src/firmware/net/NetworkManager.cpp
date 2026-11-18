@@ -359,7 +359,7 @@ void NetworkManager::startWifi(bool force_ap) {
     if (use_ap) {
         wifi_config_t ap_cfg{};
         const std::string ssid =
-            "Wiegand-Gateway-" + mac_hex_.substr(mac_hex_.size() >= 4 ? mac_hex_.size() - 4 : 0);
+            "Wiegand-Gate-Controller-" + mac_hex_.substr(mac_hex_.size() >= 4 ? mac_hex_.size() - 4 : 0);
         std::snprintf(reinterpret_cast<char*>(ap_cfg.ap.ssid), sizeof(ap_cfg.ap.ssid), "%s", ssid.c_str());
         ap_cfg.ap.ssid_len = static_cast<std::uint8_t>(ssid.size());
         ap_cfg.ap.max_connection = 4;

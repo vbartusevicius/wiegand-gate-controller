@@ -14,14 +14,14 @@ DATA = ROOT / "data"
 STATE = {
     "config": {
         "device_name": "Front Gate",
-        "wifi": {"ssid": "HomeNet", "password_set": True, "hostname": "wiegand-gateway"},
+        "wifi": {"ssid": "HomeNet", "password_set": True, "hostname": "wiegand-gate-controller"},
         "mqtt": {
             "enabled": True,
             "host": "192.168.1.10",
             "port": 1883,
             "username": "mqtt",
             "password_set": True,
-            "base_topic": "wiegand-gateway",
+            "base_topic": "wiegand-gate-controller",
             "discovery_prefix": "homeassistant",
             "ha_discovery": True,
         },

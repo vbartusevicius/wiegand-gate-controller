@@ -1,6 +1,6 @@
 (footprint "Relay_DPDT_Omron_G6S-2F_2A"
   (version 20260206)
-  (generator "wiegand-gateway")
+  (generator "wiegand-gate-controller")
   (layer "F.Cu")
   (descr "Omron G6S-2F DC5 250VAC 2A DPDT SMD Relay (LCSC C16707)")
   (attr smd)

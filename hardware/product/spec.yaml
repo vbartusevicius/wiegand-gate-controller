@@ -1,4 +1,4 @@
-# Single source of truth for Wiegand Gateway PCBs and the compact JLC3DP enclosure
+# Single source of truth for Wiegand Gate Controller PCBs and the compact JLC3DP enclosure
 # sized for the ROGER BH30 battery compartment.
 # Units: millimetres. Board coordinate system (main PCB, top view, +y = gate/relay edge, -y = power/reader edge):
 #   x = 0.0 .. 74.0 mm
@@ -6,7 +6,7 @@
 #   z = 0.0 at main PCB bottom face; tall/THT parts on F.Cu (+z), low-profile SMDs split across F.Cu & B.Cu
 
 product:
-  name: Wiegand Gateway
+  name: Wiegand Gate Controller
   revision: A
   release: v1
   status: draft-unvalidated

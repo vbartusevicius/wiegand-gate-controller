@@ -1,4 +1,4 @@
-"""Parametric CadQuery compact enclosure for Wiegand Gateway (ROGER BH30 battery bay) & JLC3DP print plate.
+"""Parametric CadQuery compact enclosure for Wiegand Gate Controller & JLC3DP print plate.
 
 Coordinate frame = PCB frame:
   PCB: x = 0..74.0, y = 0..54.0, z = 0..1.6 mm
@@ -145,7 +145,7 @@ def make_base():
 def lid_legends():
     lbl_y = SW1_XY[1] + 4.8
     return [
-        ("WIEGAND GATEWAY", (PCB_W * 0.5, PCB_H * 0.56), 4.0, 0),
+        ("WIEGAND GATE CONTROLLER", (PCB_W * 0.5, PCB_H * 0.56), 3.1, 0),
         # Bottom edge row (aligned with RST / NET / GATE)
         ("PWR", (5.5, lbl_y), 2.3, 0),
         ("WIEGAND", (21.4, lbl_y), 2.3, 0),

@@ -1,6 +1,6 @@
 (footprint "Everlight_EL357N_SOP-4"
   (version 20241229)
-  (generator "wiegand-gateway")
+  (generator "wiegand-gate-controller")
   (layer "F.Cu")
   (descr "Everlight EL357N(C)(TA)-G SOP-4 (C42379244) matched to JLCEDA OPTO-SMD-4_L4.4-W4.1-P2.54-LS7.0-TL")
   (attr smd)

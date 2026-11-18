@@ -1,4 +1,4 @@
-"""Build the Wiegand Gateway firmware release into firmware/build/release/ (git-ignored).
+"""Build the Wiegand Gate Controller firmware release into firmware/build/release/ (git-ignored).
 
     firmware.bin            application image for Web OTA updates
     usb-flash-firmware.bin  merged bootloader + partitions + otadata + app for 0x0 USB flash
@@ -75,7 +75,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     shutil.copy2(BUILD / "firmware.bin", OUT / "firmware.bin")
     shutil.copy2(BUILD / "usb-flash-firmware.bin", OUT / "usb-flash-firmware.bin")
-    print(f"Wiegand Gateway firmware {version}")
+    print(f"Wiegand Gate Controller firmware {version}")
     for name in ("firmware.bin", "usb-flash-firmware.bin"):
         f = OUT / name
         print(f"  {name:24s} {f.stat().st_size:>9} bytes  sha256 {sha256(f)}")

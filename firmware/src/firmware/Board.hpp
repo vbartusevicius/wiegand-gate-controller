@@ -5,7 +5,7 @@
 
 #include "firmware/EspIdfHostStubs.hpp"
 
-// Seeed XIAO ESP32-C6 pin assignment on Wiegand Gateway v1 main board:
+// Seeed XIAO ESP32-C6 pin assignment on Wiegand Gate Controller v1 main board:
 //   D0  / GPIO0  = VIN_ADC     (ADC1_CH0: 9-32 V DC input monitor via 100k/10k divider)
 //   D1  / GPIO1  = BTN_RESTART (SW1 Restart / AP Setup / Factory Reset button, active LOW)
 //   D2  / GPIO2  = WG_D0       (Wiegand Data 0 via 5V-tolerant Schmitt buffer, falling edge)
@@ -71,7 +71,7 @@ constexpr bool pins_distinct() {
     return true;
 }
 
-static_assert(pins_distinct(), "Wiegand Gateway pins must be distinct and avoid USB D-/D+");
+static_assert(pins_distinct(), "Wiegand Gate Controller pins must be distinct and avoid USB D-/D+");
 
 }  // namespace board
 }  // namespace firmware

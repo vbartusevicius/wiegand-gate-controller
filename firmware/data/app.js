@@ -338,7 +338,7 @@
   async function loadStatus() {
     try {
       const s = await api("/api/status");
-      byId("hdr-name").textContent = s.device_name || "Wiegand Gateway";
+      byId("hdr-name").textContent = s.device_name || "Wiegand Gate Controller";
       byId("hdr-meta").textContent = `FW ${s.fw_version} · Up ${s.uptime_s}s · ${s.network.ip || "AP"}`;
       byId("hdr-dot").className = s.network.wifi_connected ? "dot ok" : "dot";
 

@@ -1,0 +1,134 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: Create GitHub Release from this run
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build lint containers
+        run: docker compose --profile lint build lint cpp-lint
+      - name: Python lint (ruff)
+        run: docker compose --profile lint run --rm -T lint check .
+      - name: C++ format check (clang-format-19)
+        run: docker compose --profile lint run --rm -T cpp-lint "shopt -s globstar && clang-format-19 --dry-run --Werror firmware/src/**/*.cpp firmware/src/**/*.hpp firmware/test/**/*.cpp"
+
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build cpp-lint container
+        run: docker compose --profile lint build cpp-lint
+      - name: Run native & sanitized unit tests
+        run: docker compose --profile lint run --rm -T cpp-lint "pio test -d firmware -e native && pio test -d firmware -e native_sanitized"
+      - name: Pack Web UI & run smoke test
+        run: |
+          python3 firmware/scripts/pack_webui.py
+          python3 firmware/scripts/mock_webui_server.py --port 8769 &
+          srv_pid=$!
+          trap "kill $srv_pid 2>/dev/null || true" EXIT
+          sleep 1
+          node firmware/test/webui/smoke.mjs http://127.0.0.1:8769
+      - name: Build ESP32-C6 release firmware
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            python3 firmware/scripts/release_firmware.py --version "${GITHUB_REF_NAME#v}"
+          else
+            python3 firmware/scripts/release_firmware.py
+          fi
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiegand-gate-controller-firmware
+          path: |
+            firmware/build/release/firmware.bin
+            firmware/build/release/usb-flash-firmware.bin
+          if-no-files-found: error
+
+  hardware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build EDA container
+        run: docker compose --profile hardware build eda
+      - name: Generate netlists, verify PCB/JLC release & run hardware tests
+        run: |
+          docker compose --profile hardware run --rm -T -e JLC_LIVE=0 eda \
+            "python3 hardware/scripts/gen_circuits.py && python3 hardware/scripts/release.py v1 && python3 -m pytest hardware/tests -q -p no:cacheprovider"
+      - name: Upload PCB + JLC artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiegand-gate-controller-pcb-jlc
+          path: |
+            hardware/releases/v1/main/
+            hardware/releases/v1/order_lcsc.csv
+            hardware/releases/v1/order_elsewhere.csv
+            hardware/releases/v1/assembly_parts.csv
+          if-no-files-found: error
+
+  mechanical:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CAD container
+        run: docker compose --profile hardware build cad
+      - name: Build enclosure STLs/STEPs, renders & run mechanical tests
+        run: docker compose --profile hardware run --rm -T cad "python3 hardware/scripts/build.py --in-cad --test"
+      - name: Upload enclosure STL/STEP artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiegand-gate-controller-enclosure
+          path: mechanical/build/v1/
+          if-no-files-found: error
+
+  release:
+    needs: [lint, firmware, hardware, mechanical]
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Package PCB and Enclosure bundles
+        run: |
+          mkdir -p release-files
+          cp dist/wiegand-gate-controller-firmware/firmware.bin release-files/
+          cp dist/wiegand-gate-controller-firmware/usb-flash-firmware.bin release-files/
+          (cd dist/wiegand-gate-controller-pcb-jlc && zip -r ../../release-files/wiegand-gate-controller-pcb-jlc.zip .)
+          (cd dist/wiegand-gate-controller-enclosure && zip -r ../../release-files/wiegand-gate-controller-enclosure.zip .)
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${{ github.ref }}" != refs/tags/v* ]]; then
+            TAG="build-${GITHUB_RUN_NUMBER}"
+          fi
+          gh release create "$TAG" release-files/* \
+            --title "Wiegand Gate Controller $TAG" \
+            --generate-notes \
+            --prerelease=${{ !startsWith(github.ref, 'refs/tags/v') }}

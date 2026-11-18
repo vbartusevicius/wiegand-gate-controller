@@ -1,6 +1,6 @@
 (footprint "TI_TCA9534DWR_SOIC-16"
   (version 20241229)
-  (generator "wiegand-gateway")
+  (generator "wiegand-gate-controller")
   (layer "F.Cu")
   (descr "TCA9534DWR wide SOIC-16 300mil (C2870609) matched to JLCEDA SOIC-16_L10.3-W7.5-P1.27-LS10.3-BL")
   (attr smd)

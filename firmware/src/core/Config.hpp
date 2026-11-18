@@ -24,7 +24,7 @@ enum class SensorMode : std::uint8_t {
 struct WifiConfig {
     std::string ssid;
     std::string password;
-    std::string hostname{"wiegand-gateway"};
+    std::string hostname{"wiegand-gate-controller"};
 };
 
 struct MqttConfig {
@@ -33,7 +33,7 @@ struct MqttConfig {
     std::uint16_t port{1883};
     std::string username;
     std::string password;
-    std::string base_topic{"wiegand-gateway"};
+    std::string base_topic{"wiegand-gate-controller"};
     std::string discovery_prefix{"homeassistant"};
     bool ha_discovery{true};
 };

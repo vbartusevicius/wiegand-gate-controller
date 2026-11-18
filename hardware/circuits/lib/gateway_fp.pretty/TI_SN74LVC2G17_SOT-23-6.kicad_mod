@@ -1,6 +1,6 @@
 (footprint "TI_SN74LVC2G17_SOT-23-6"
   (version 20241229)
-  (generator "wiegand-gateway")
+  (generator "wiegand-gate-controller")
   (layer "F.Cu")
   (descr "SN74LVC2G17DBVR (C7394037) matched to JLCEDA SOT-23-6_L2.9-W1.6-P0.95-LS2.8-BR")
   (attr smd)

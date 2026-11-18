@@ -71,5 +71,5 @@ Because `IN1`–`IN3` are isolated `EL357N` optocoupler inputs (`4.4 kΩ` series
 - **USB-C flashing (`-X` wall cutout):** `D5` blocks USB-C 5 V from back-feeding the 5 V rail, so USB-C flashing is safe while disconnected or powered. Avoid plugging USB-C into an ungrounded laptop while the gate controller is live if earth-loop currents are possible.
 - **Restart / Recovery button (`SW1`):**
   - Short tap: Restart ESP32-C6
-  - Hold 5 s: Launch Wi-Fi AP setup portal (`Wiegand-Gateway-XXXX`)
+  - Hold 5 s: Launch Wi-Fi AP setup portal (`Wiegand-Gate-Controller-XXXX`)
   - Hold 10 s: Factory reset stored config & users
