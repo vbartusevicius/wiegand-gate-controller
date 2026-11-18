@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "core/GatewayApp.hpp"
@@ -35,6 +36,8 @@ public:
     bool wifiConnected() const { return wifi_connected_; }
     bool apMode() const { return ap_mode_; }
     bool mqttConnected() const { return mqtt_connected_; }
+    bool isScanningAntenna() const { return scanning_antenna_; }
+    const std::string& activeAntenna() const { return active_antenna_; }
     const std::string& macHex() const { return mac_hex_; }
 
     core::GatewayApp* app() const { return app_; }
@@ -62,6 +65,9 @@ public:
     void onMqttData(const std::string& topic, const std::string& payload);
 
 private:
+    std::optional<int> probeSsidRssi(const std::string& ssid, bool external);
+    void applyAntenna(const core::WifiConfig& wcfg);
+
     core::GatewayApp* app_{nullptr};
     Storage* storage_{nullptr};
     std::string fw_version_;
@@ -71,10 +77,12 @@ private:
 
     std::string mac_hex_;
     std::string ip_str_;
+    std::string active_antenna_{"internal"};
     bool wifi_started_{false};
     bool wifi_connected_{false};
     bool ap_mode_{false};
     bool mqtt_connected_{false};
+    bool scanning_antenna_{false};
     void* mqtt_{nullptr};
     void* httpd_{nullptr};
     float latest_vin_{0.0F};

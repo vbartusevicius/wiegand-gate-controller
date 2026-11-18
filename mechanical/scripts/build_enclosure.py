@@ -136,7 +136,15 @@ def make_base():
         .rect(WALL + 2.0, 11.0)
         .extrude(Z_SPLIT - 7.0)
     )
-    base = base.cut(usb_cut)
+    # Optional external U.FL antenna coax exit notch on +X wall (z = Z_SPLIT-3.2 .. Z_SPLIT)
+    ant_cut = (
+        cq.Workplane("XY")
+        .workplane(offset=Z_SPLIT - 3.2)
+        .center(X1 - WALL / 2, USB_Y)
+        .rect(WALL + 2.0, 3.2)
+        .extrude(3.7)
+    )
+    base = base.cut(usb_cut).cut(ant_cut)
     return base
 
 
@@ -152,8 +160,9 @@ def lid_legends():
         ("RST", (SW1_XY[0], lbl_y), 2.5, 0),
         ("NET", (LED_NET_XY[0], lbl_y), 2.5, 0),
         ("GATE", (LED_GATE_XY[0], lbl_y), 2.5, 0),
-        # Left USB-C edge
+        # Left USB-C & Right ANT edges
         ("USB", (2.2, USB_Y), 2.2, 90),
+        ("ANT", (PCB_W - 2.2, USB_Y), 2.2, 90),
         # Bottom terminal pins (J1, J2A, J2B at y = 3.8)
         ("V+", (3.75, 3.8), 1.9, 90),
         ("GND", (7.25, 3.8), 1.9, 90),

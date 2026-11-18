@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace gateway {
@@ -21,10 +22,17 @@ enum class SensorMode : std::uint8_t {
     TimerFallback = 3,  // Estimate state from command + travel_time_ms
 };
 
+enum class AntennaMode : std::uint8_t {
+    Auto = 0,      // Compare scan RSSI on internal vs external U.FL and pick stronger path
+    Internal = 1,  // Built-in ceramic antenna (GPIO14 = LOW)
+    External = 2,  // External U.FL antenna (GPIO14 = HIGH)
+};
+
 struct WifiConfig {
     std::string ssid;
     std::string password;
     std::string hostname{"wiegand-gate-controller"};
+    AntennaMode antenna{AntennaMode::Auto};
 };
 
 struct MqttConfig {
@@ -133,6 +141,42 @@ inline SensorMode parseSensorMode(const std::string& s) {
         return SensorMode::TimerFallback;
     }
     return SensorMode::RogerB70;
+}
+
+inline const char* toString(AntennaMode mode) {
+    switch (mode) {
+    case AntennaMode::Auto:
+        return "auto";
+    case AntennaMode::Internal:
+        return "internal";
+    case AntennaMode::External:
+        return "external";
+    }
+    return "auto";
+}
+
+inline AntennaMode parseAntennaMode(const std::string& s) {
+    if (s == "internal") {
+        return AntennaMode::Internal;
+    }
+    if (s == "external") {
+        return AntennaMode::External;
+    }
+    return AntennaMode::Auto;
+}
+
+inline bool selectExternalAntenna(AntennaMode mode, std::optional<int> ext_rssi,
+                                  std::optional<int> int_rssi) {
+    if (mode == AntennaMode::Internal) {
+        return false;
+    }
+    if (mode == AntennaMode::External) {
+        return true;
+    }
+    if (ext_rssi.has_value() && int_rssi.has_value()) {
+        return *ext_rssi >= (*int_rssi - 2);
+    }
+    return ext_rssi.has_value();
 }
 
 inline double round2(float v) {

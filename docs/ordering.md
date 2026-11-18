@@ -21,7 +21,7 @@ Order separately and solder/assemble after PCB arrival:
 | 1 | WAGO 2086 2-pole 3.5 mm SMD push-in terminal block | `2086-1202/700-000/997-604` (Digi-Key `2946-2086-1202/700-000/997-604CT-ND` / Mouser) | Hand-solder onto `J1` |
 | 1 | Seeed Studio XIAO ESP32-C6 (Pre-Soldered) | `102010636` (Digi-Key `1597-102010636-ND` / Mouser / Seeed) | Plugs into `U3` sockets |
 | 2 | Samtec 1x7 2.54 mm female header (`5.08 mm` tall) | `CES-107-02-G-S` (Mouser `200-CES10702GS` / Digi-Key) | Hand-solder onto `U3` |
-| 1 | 2.4 GHz U.FL flexible PCB dipole antenna (`100 mm`) | Molex `1461530100` (LCSC `C152350` / Digi-Key `WM13992-ND`) | Connects to XIAO U.FL jack; sticks inside lid |
+| 1 | External 2.4 GHz U.FL adhesive flex antenna *(optional, recommended)* | Molex `1461530100` (`100 mm`, LCSC `C152350` / Digi-Key `WM12218-ND`) or `1461530200` (`200 mm`) | Plugs into XIAO U.FL jack; coax exits via `ANT` enclosure slot to stick outside metal gate boxes |
 | 4 | M3 x 12 socket head screws + M3 hex nuts | DIN 912 / DIN 934 stainless | Secures lid to base corner ears |
 
 ## 3. 3D-Printed Enclosure (JLC3DP)

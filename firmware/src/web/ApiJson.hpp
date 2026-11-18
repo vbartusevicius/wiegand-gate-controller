@@ -21,6 +21,7 @@ struct RuntimeStatus {
     int rssi_dbm{0};
     bool mqtt_connected{false};
     bool simulated{false};
+    std::string active_antenna{"internal"};
 };
 
 class ApiJson {

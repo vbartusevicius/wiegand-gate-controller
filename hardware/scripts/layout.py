@@ -94,6 +94,41 @@ def add_3d_models(board):
             m = pcbnew.FP_3DMODEL()
             m.m_Filename = "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm.step"
             fp.Add3DModel(m)
+        elif fp_name in (
+            "TerminalBlock_WAGO_2086-1202_SMD",
+            "TerminalBlock_WAGO_2086-1203_SMD",
+            "TerminalBlock_WAGO_2086-1204_SMD",
+        ):
+            poles = {"TerminalBlock_WAGO_2086-1202_SMD": 2, "TerminalBlock_WAGO_2086-1203_SMD": 3, "TerminalBlock_WAGO_2086-1204_SMD": 4}[fp_name]
+            cx = (poles - 1) * 1.75
+            for i in reversed(range(len(models))):
+                del models[i]
+            m = pcbnew.FP_3DMODEL()
+            m.m_Filename = (
+                f"${{KICAD10_3DMODEL_DIR}}/TerminalBlock_Phoenix.3dshapes/"
+                f"TerminalBlock_Phoenix_PT-1,5-{poles}-3.5-H_1x0{poles}_P3.50mm_Horizontal.step"
+            )
+            m.m_Offset = pcbnew.VECTOR3D(-cx, -2.0, 0)
+            fp.Add3DModel(m)
+        elif fp_name == "XIAO_ESP32C6_Header":
+            for i in reversed(range(len(models))):
+                del models[i]
+            for x_off in (-7.62, 7.62):
+                sock = pcbnew.FP_3DMODEL()
+                sock.m_Filename = "${KICAD10_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x07_P2.54mm_Vertical.step"
+                sock.m_Offset = pcbnew.VECTOR3D(x_off, 7.62, 0)
+                fp.Add3DModel(sock)
+            mod = pcbnew.FP_3DMODEL()
+            mod.m_Filename = "${KICAD10_3DMODEL_DIR}/RF_Module.3dshapes/ESP32-C3-WROOM-02.step"
+            mod.m_Offset = pcbnew.VECTOR3D(0, -0.5, 8.5)
+            mod.m_Scale = pcbnew.VECTOR3D(0.95, 1.0, 0.85)
+            mod.m_Rotation = pcbnew.VECTOR3D(0, 0, 0)
+            fp.Add3DModel(mod)
+            usbc = pcbnew.FP_3DMODEL()
+            usbc.m_Filename = "${KICAD10_3DMODEL_DIR}/Connector_USB.3dshapes/USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal.step"
+            usbc.m_Offset = pcbnew.VECTOR3D(0, 8.8, 9.8)
+            usbc.m_Rotation = pcbnew.VECTOR3D(0, 0, 180)
+            fp.Add3DModel(usbc)
 
 
 def layout_dir(board):

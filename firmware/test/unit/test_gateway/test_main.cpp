@@ -286,6 +286,28 @@ void test_restart_button_and_door_hold_open() {
     TEST_ASSERT_FALSE(door.relayOutputs().relay1);
 }
 
+void test_antenna_auto_selection_and_json() {
+    // Explicit overrides
+    TEST_ASSERT_FALSE(core::selectExternalAntenna(core::AntennaMode::Internal, -40, -70));
+    TEST_ASSERT_TRUE(core::selectExternalAntenna(core::AntennaMode::External, -90, -50));
+
+    // Auto: unplugged external antenna drops ~25 dB -> falls back to internal
+    TEST_ASSERT_FALSE(core::selectExternalAntenna(core::AntennaMode::Auto, -82, -55));
+    // Auto: external antenna connected & stronger (or within 2 dB) -> picks external
+    TEST_ASSERT_TRUE(core::selectExternalAntenna(core::AntennaMode::Auto, -50, -64));
+    TEST_ASSERT_TRUE(core::selectExternalAntenna(core::AntennaMode::Auto, -56, -55));
+    // Auto: neither sees SSID -> safe fallback to internal
+    TEST_ASSERT_FALSE(core::selectExternalAntenna(core::AntennaMode::Auto, std::nullopt, std::nullopt));
+    // Auto: only external sees SSID -> picks external
+    TEST_ASSERT_TRUE(core::selectExternalAntenna(core::AntennaMode::Auto, -72, std::nullopt));
+
+    core::DeviceConfig cfg;
+    TEST_ASSERT_TRUE(web::ApiJson::applyConfigPatch("{\"wifi\":{\"antenna\":\"external\"}}", cfg));
+    TEST_ASSERT_EQUAL(core::AntennaMode::External, cfg.wifi.antenna);
+    const std::string json = web::ApiJson::buildConfig(cfg);
+    TEST_ASSERT_TRUE(json.find("\"antenna\":\"external\"") != std::string::npos);
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_wiegand_26_valid_and_bad_parity);
@@ -295,5 +317,6 @@ int main() {
     RUN_TEST(test_dual_limit_fault_and_rex);
     RUN_TEST(test_ha_mqtt_discovery_and_gateway_app);
     RUN_TEST(test_restart_button_and_door_hold_open);
+    RUN_TEST(test_antenna_auto_selection_and_json);
     return UNITY_END();
 }

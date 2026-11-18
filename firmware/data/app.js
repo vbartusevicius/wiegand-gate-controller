@@ -356,11 +356,12 @@
       byId("st-mode").textContent = MODE_LABELS[s.gate.mode] || s.gate.mode;
       byId("st-sensor").textContent = SENSOR_LABELS[s.gate.sensor_mode] || s.gate.sensor_mode;
       byId("st-vin").textContent = `${Number(s.vin_v || 0).toFixed(2)} V`;
+      const antLbl = s.network.antenna === "external" ? "External U.FL" : "Internal PCB";
       byId("st-wifi").textContent = s.network.ap_mode
-        ? "AP Setup (192.168.4.1)"
+        ? `AP Setup (192.168.4.1 · ${antLbl})`
         : s.network.wifi_connected
-          ? `${s.network.ip} (${s.network.rssi} dBm)`
-          : "Disconnected";
+          ? `${s.network.ip} (${s.network.rssi} dBm · ${antLbl})`
+          : `Disconnected (${antLbl})`;
       byId("st-mqtt").textContent = s.network.mqtt_connected ? "Connected" : "Offline";
       byId("st-users").textContent = String(s.users_count || 0);
 
@@ -488,6 +489,7 @@
 
       byId("c-wifi-ssid").value = c.wifi.ssid || "";
       byId("c-wifi-host").value = c.wifi.hostname || "";
+      byId("c-wifi-ant").value = c.wifi.antenna || "auto";
       byId("c-mqtt-en").checked = c.mqtt.enabled;
       byId("c-mqtt-host").value = c.mqtt.host || "";
       byId("c-mqtt-port").value = c.mqtt.port || 1883;
@@ -636,6 +638,7 @@
             ssid: byId("c-wifi-ssid").value.trim(),
             password: byId("c-wifi-pass").value,
             hostname: byId("c-wifi-host").value.trim(),
+            antenna: byId("c-wifi-ant").value,
           },
           mqtt: {
             enabled: byId("c-mqtt-en").checked,

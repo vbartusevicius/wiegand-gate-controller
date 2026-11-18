@@ -8,15 +8,15 @@ Compact **ESP32-C6** Wiegand access-control gateway for sliding/swing gates and 
 
 *3D-printed enclosure (`78.8 × 58.8 × 27.7 mm`) with engraved terminal labels and translucent `0.4 mm` status LED windows.*
 
-![Main PCB top](hardware/releases/v1/main/renders/top.png)
-
-*4-layer PCB (`74.0 × 54.0 mm`) with tool-free WAGO 2086 SMD push-in terminals and socketed Seeed XIAO ESP32-C6.*
+| 4-Layer PCB — Top (`74.0 × 54.0 mm`) | 4-Layer PCB — Bottom |
+| :---: | :---: |
+| ![Main PCB top with components](docs/images/pcb-top.png) | ![Main PCB bottom with components](docs/images/pcb-bottom.png) |
 
 - **9–32 V DC input (`PWR`)**: polyfuse, reverse-polarity diode, TVS clamp, ADC supply monitor, and dual step-down converters (`+5 V` logic + fused `+12 V` reader/aux supply).
 - **Wiegand reader port (`WIEGAND`)**: 5 V-tolerant Schmitt-buffered `D0`/`D1`, open-drain `LED`/`BEEP` outputs, supports auto-detected 26/34/37/58-bit cards and 4/8-bit keypad PINs.
 - **2× isolated relays (`RELAY 1`, `RELAY 2`)**: potential-free Form-C dry contacts (`2 A / 30 V DC` max) for Open/Close, Step/Pedestrian, or Dual-Door control.
 - **3× opto-isolated inputs (`SENSORS`, `EXIT / 12V`)**: accept 5–24 V DC signals or dry contacts (magnetic reed, dual limits, controller blinking status output, and exit/REX pushbutton).
-- **Tool-free WAGO 2086 SMD push-in terminals** (`J1`–`J5`, 3.5 mm pitch) + **Seeed XIAO ESP32-C6** with external U.FL antenna, dual `WS2812B` RGB LEDs (`NET`, `GATE`), and `RST` button behind a `0.4 mm` translucent cover window.
+- **Tool-free WAGO 2086 SMD push-in terminals** (`J1`–`J5`, 3.5 mm pitch) + **Seeed XIAO ESP32-C6** (built-in antenna + optional external stickable U.FL antenna via `ANT` exit slot with automatic firmware RSSI selection), dual `WS2812B` RGB LEDs (`NET`, `GATE`), and `RST` button behind a `0.4 mm` translucent cover window.
 
 ## Web UI & Home Assistant
 
@@ -44,6 +44,7 @@ Compact **ESP32-C6** Wiegand access-control gateway for sliding/swing gates and 
 | Top | `SENSORS` | `IN2-`, `IN2+`, `IN1-`, `IN1+` | Position / limit / status inputs |
 | Top | `EXIT / 12V` | `GND`, `+12V`, `IN3-`, `IN3+` | Exit (REX) input & +12 V wetting supply |
 | Left | `USB` | USB-C | Initial flashing & serial console |
+| Right | `ANT` | U.FL coax slot | Optional external 2.4 GHz stickable antenna exit |
 
 ## Documentation
 

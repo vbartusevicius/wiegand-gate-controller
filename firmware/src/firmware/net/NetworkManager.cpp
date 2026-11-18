@@ -83,7 +83,9 @@ void wifiEventHandler(void* arg, esp_event_base_t base, std::int32_t id, void* /
             if (id == WIFI_EVENT_STA_DISCONNECTED) {
                 nm->onWifiDisconnected();
             }
-            esp_wifi_connect();
+            if (!nm->isScanningAntenna()) {
+                esp_wifi_connect();
+            }
         }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         nm->onWifiConnected();
@@ -314,13 +316,13 @@ void NetworkManager::init(core::GatewayApp* app, Storage* storage, std::string f
     unlock_ = std::move(unlock);
     on_cfg_saved_ = std::move(on_cfg_saved);
 
-    // Enable Seeed XIAO ESP32-C6 external U.FL antenna switch: GPIO3=LOW, GPIO14=HIGH
+    // Enable Seeed XIAO ESP32-C6 RF switch power (GPIO3=LOW); default internal ceramic until Wi-Fi starts
     gpio_config_t rf_cfg{};
     rf_cfg.pin_bit_mask = (1ULL << board::rf_switch_power_pin) | (1ULL << board::rf_antenna_select_pin);
     rf_cfg.mode = GPIO_MODE_OUTPUT;
     gpio_config(&rf_cfg);
     gpio_set_level(board::rf_switch_power_pin, 0);
-    gpio_set_level(board::rf_antenna_select_pin, 1);
+    gpio_set_level(board::rf_antenna_select_pin, 0);
 
     std::uint8_t mac[6]{};
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
@@ -331,6 +333,46 @@ void NetworkManager::init(core::GatewayApp* app, Storage* storage, std::string f
 
     esp_netif_init();
     esp_event_loop_create_default();
+}
+
+std::optional<int> NetworkManager::probeSsidRssi(const std::string& ssid, bool external) {
+    gpio_set_level(board::rf_switch_power_pin, 0);
+    gpio_set_level(board::rf_antenna_select_pin, external ? 1 : 0);
+    vTaskDelay(pdMS_TO_TICKS(15));
+
+    std::string ssid_copy = ssid;
+    wifi_scan_config_t scan_cfg{};
+    scan_cfg.ssid = reinterpret_cast<std::uint8_t*>(ssid_copy.data());
+    scan_cfg.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+    scan_cfg.scan_time.active.min = 30;
+    scan_cfg.scan_time.active.max = 90;
+    if (esp_wifi_scan_start(&scan_cfg, true) != ESP_OK) {
+        return std::nullopt;
+    }
+
+    std::uint16_t count = 4;
+    wifi_ap_record_t recs[4]{};
+    if (esp_wifi_scan_get_ap_records(&count, recs) != ESP_OK || count == 0) {
+        return std::nullopt;
+    }
+    int best = recs[0].rssi;
+    for (std::uint16_t i = 1; i < count; ++i) {
+        best = std::max(best, static_cast<int>(recs[i].rssi));
+    }
+    return best;
+}
+
+void NetworkManager::applyAntenna(const core::WifiConfig& wcfg) {
+    std::optional<int> ext_rssi;
+    std::optional<int> int_rssi;
+    if (wcfg.antenna == core::AntennaMode::Auto && !wcfg.ssid.empty() && !ap_mode_) {
+        ext_rssi = probeSsidRssi(wcfg.ssid, true);
+        int_rssi = probeSsidRssi(wcfg.ssid, false);
+    }
+    const bool use_ext = core::selectExternalAntenna(wcfg.antenna, ext_rssi, int_rssi);
+    gpio_set_level(board::rf_switch_power_pin, 0);
+    gpio_set_level(board::rf_antenna_select_pin, use_ext ? 1 : 0);
+    active_antenna_ = use_ext ? "external" : "internal";
 }
 
 void NetworkManager::startWifi(bool force_ap) {
@@ -357,6 +399,7 @@ void NetworkManager::startWifi(bool force_ap) {
     wifi_connected_ = false;
 
     if (use_ap) {
+        applyAntenna(wcfg);
         wifi_config_t ap_cfg{};
         const std::string ssid =
             "Wiegand-Gate-Controller-" + mac_hex_.substr(mac_hex_.size() >= 4 ? mac_hex_.size() - 4 : 0);
@@ -377,10 +420,18 @@ void NetworkManager::startWifi(bool force_ap) {
                   wcfg.ssid.c_str());
     std::snprintf(reinterpret_cast<char*>(sta_cfg.sta.password), sizeof(sta_cfg.sta.password), "%s",
                   wcfg.password.c_str());
+    scanning_antenna_ = (wcfg.antenna == core::AntennaMode::Auto);
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
     esp_wifi_start();
     esp_wifi_set_max_tx_power(board::wifi_max_tx_power_quarter_dbm);
+    if (wcfg.antenna == core::AntennaMode::Auto) {
+        applyAntenna(wcfg);
+        scanning_antenna_ = false;
+        esp_wifi_connect();
+    } else {
+        applyAntenna(wcfg);
+    }
 }
 
 void NetworkManager::startMqtt() {
@@ -513,6 +564,7 @@ web::RuntimeStatus NetworkManager::runtimeStatus(float vin_v, std::uint64_t upti
     rt.ip = ip_str_;
     rt.mac = mac_hex_;
     rt.mqtt_connected = mqtt_connected_;
+    rt.active_antenna = active_antenna_;
     wifi_ap_record_t ap_info{};
     if (wifi_connected_ && esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
         rt.rssi_dbm = ap_info.rssi;

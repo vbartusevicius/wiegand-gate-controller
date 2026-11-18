@@ -67,7 +67,8 @@ Because `IN1`–`IN3` are isolated `EL357N` optocoupler inputs (`4.4 kΩ` series
 
 ## XIAO ESP32-C6 & Antenna Setup
 
-- Plug the **Molex 1461530100** U.FL dipole antenna onto the XIAO ESP32-C6 U.FL connector and adhere it inside the enclosure lid (away from the `24 V` power inductors `L1`/`L2`). Firmware drives `GPIO3 = LOW`, `GPIO14 = HIGH` to select the external U.FL antenna.
+- **Optional external antenna (`ANT` slot on `+X` wall):** For installations inside a metal gate cabinet, connect the adhesive **Molex `1461530100`** (`100 mm`) or **`1461530200`** (`200 mm`) U.FL flex antenna to the XIAO ESP32-C6 U.FL jack, route its `1.13 mm` coax out through the **`ANT`** notch on the right wall, and stick it onto a non-metallic surface outside the cabinet.
+- **Automatic antenna selection:** Because the XIAO ESP32-C6 U.FL socket has no electrical presence-detect pin, firmware defaults to **Auto** mode — during Wi-Fi connection it compares scan RSSI between the internal ceramic antenna (`GPIO14=LOW`) and the external U.FL port (`GPIO14=HIGH`) and picks the stronger path (configurable in **Network -> Wi-Fi Connection**).
 - **USB-C flashing (`-X` wall cutout):** `D5` blocks USB-C 5 V from back-feeding the 5 V rail, so USB-C flashing is safe while disconnected or powered. Avoid plugging USB-C into an ungrounded laptop while the gate controller is live if earth-loop currents are possible.
 - **Restart / Recovery button (`SW1`):**
   - Short tap: Restart ESP32-C6

@@ -54,6 +54,7 @@ std::string ApiJson::buildStatus(const core::DeviceConfig& cfg, const RuntimeSta
     net["mac"] = rt.mac;
     net["rssi"] = rt.rssi_dbm;
     net["mqtt_connected"] = rt.mqtt_connected;
+    net["antenna"] = rt.active_antenna;
 
     JsonObject g = doc["gate"].to<JsonObject>();
     g["state"] = gate::toString(gate.state());
@@ -87,6 +88,7 @@ std::string ApiJson::buildConfig(const core::DeviceConfig& cfg) {
     wifi["ssid"] = cfg.wifi.ssid;
     wifi["password_set"] = !cfg.wifi.password.empty();
     wifi["hostname"] = cfg.wifi.hostname;
+    wifi["antenna"] = core::toString(cfg.wifi.antenna);
 
     JsonObject mqtt = doc["mqtt"].to<JsonObject>();
     mqtt["enabled"] = cfg.mqtt.enabled;
@@ -146,6 +148,7 @@ bool ApiJson::applyConfigPatch(const std::string& json, core::DeviceConfig& cfg)
         readString(w, "ssid", cfg.wifi.ssid);
         readNonEmptySecret(w, "password", cfg.wifi.password);
         readString(w, "hostname", cfg.wifi.hostname);
+        readEnum(w, "antenna", cfg.wifi.antenna, core::parseAntennaMode);
     }
 
     if (const JsonObjectConst m = root["mqtt"]; !m.isNull()) {

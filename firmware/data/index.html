@@ -296,6 +296,14 @@
               <label>mDNS Hostname (.local)
                 <input type="text" id="c-wifi-host" />
               </label>
+              <label>Wi-Fi Antenna
+                <select id="c-wifi-ant">
+                  <option value="auto">Auto (Detect best via RSSI scan)</option>
+                  <option value="internal">Built-in PCB Ceramic Antenna</option>
+                  <option value="external">External Stickable U.FL Antenna (ANT slot)</option>
+                </select>
+                <small class="hint">Auto compares internal vs external U.FL signal on Wi-Fi connect</small>
+              </label>
             </div>
           </div>
 

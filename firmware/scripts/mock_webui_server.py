@@ -14,7 +14,7 @@ DATA = ROOT / "data"
 STATE = {
     "config": {
         "device_name": "Front Gate",
-        "wifi": {"ssid": "HomeNet", "password_set": True, "hostname": "wiegand-gate-controller"},
+        "wifi": {"ssid": "HomeNet", "password_set": True, "hostname": "wiegand-gate-controller", "antenna": "auto"},
         "mqtt": {
             "enabled": True,
             "host": "192.168.1.10",
@@ -110,7 +110,7 @@ class Handler(BaseHTTPRequestHandler):
                 "uptime_s": 120,
                 "vin_v": 24.15,
                 "simulated": True,
-                "network": {"wifi_connected": True, "ap_mode": False, "ip": "192.168.1.55", "mac": "AABBCCDDEEFF", "rssi": -54, "mqtt_connected": True},
+                "network": {"wifi_connected": True, "ap_mode": False, "ip": "192.168.1.55", "mac": "AABBCCDDEEFF", "rssi": -54, "mqtt_connected": True, "antenna": "external" if cfg["wifi"].get("antenna") == "external" else "internal"},
                 "gate": {"state": STATE["gate_state"], "mode": cfg["relay"]["mode"], "sensor_mode": cfg["sensor"]["mode"], "hold_open": False, "relay1": False, "relay2": False, "in1": STATE["gate_state"] != "closed", "in2": STATE["gate_state"] == "open", "in3": False},
                 "last_unknown": STATE["last_unknown"],
                 "users_count": len(STATE["users"]),

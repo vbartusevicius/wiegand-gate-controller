@@ -27,11 +27,11 @@ DERIVED_END = "# --- END GENERATED ---"
 
 UTILITY_ITEMS = [
     {
-        "item": "2.4 GHz U.FL (IPEX-1) Flexible PCB Dipole Antenna",
+        "item": "External 2.4 GHz U.FL Adhesive Antenna (optional, recommended)",
         "qty": 1,
-        "part": "Molex 1461530100 (100 mm U.FL coax; LCSC C152350)",
-        "description": "Plugs into XIAO ESP32-C6 U.FL jack (GPIO3=LOW, GPIO14=HIGH); sticks to inner lid shelf",
-        "source": "Mouser 538-1461530100 / Digi-Key WM13992-ND / LCSC C152350",
+        "part": "Molex 1461530100 (100 mm coax, LCSC C152350) or 1461530200 (200 mm)",
+        "description": "Optional adhesive flex dipole; plugs into XIAO U.FL jack, routes out the ANT slot, and sticks outside metal gate cabinets (firmware Auto-selects via RSSI)",
+        "source": "Mouser 538-1461530100 / Digi-Key WM12218-ND / LCSC C152350",
         "category": "electronics",
     },
     {
