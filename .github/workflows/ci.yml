@@ -7,11 +7,6 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
-    inputs:
-      create_release:
-        description: Create GitHub Release from this run
-        type: boolean
-        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -52,11 +47,8 @@ jobs:
           node firmware/test/webui/smoke.mjs http://127.0.0.1:8769
       - name: Build ESP32-C6 release firmware
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            python3 firmware/scripts/release_firmware.py --version "${GITHUB_REF_NAME#v}"
-          else
-            python3 firmware/scripts/release_firmware.py
-          fi
+          VER=$(python3 -c 'import subprocess,time; ts=int(subprocess.check_output(["git","show","-s","--format=%ct","HEAD"])); print(time.strftime("%Y.%m.%d.%H%M", time.gmtime(ts)))')
+          python3 firmware/scripts/release_firmware.py --version "$VER"
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -104,7 +96,7 @@ jobs:
 
   release:
     needs: [lint, firmware, hardware, mechanical]
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -124,11 +116,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          if [[ "${{ github.ref }}" != refs/tags/v* ]]; then
-            TAG="build-${GITHUB_RUN_NUMBER}"
+          VER=$(python3 -c 'import subprocess,time; ts=int(subprocess.check_output(["git","show","-s","--format=%ct","HEAD"])); print(time.strftime("%Y.%m.%d.%H%M", time.gmtime(ts)))')
+          if gh release view "$VER" >/dev/null 2>&1; then
+            gh release upload "$VER" release-files/* --clobber
+          else
+            gh release create "$VER" release-files/* \
+              --title "Wiegand Gate Controller $VER" \
+              --generate-notes
           fi
-          gh release create "$TAG" release-files/* \
-            --title "Wiegand Gate Controller $TAG" \
-            --generate-notes \
-            --prerelease=${{ !startsWith(github.ref, 'refs/tags/v') }}
