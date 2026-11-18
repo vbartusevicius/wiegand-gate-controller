@@ -1,6 +1,6 @@
 (kicad_symbol_lib
   (version 20231120)
-  (generator "wiegand-gateway")
+  (generator "wiegand-gate-controller")
 
   (symbol "XIAO_ESP32C6"
     (pin_names (offset 0.508))
