@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wiegand Gateway</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot" id="hdr-dot"></span>
+      <div>
+        <h1 id="hdr-name">Wiegand Gateway</h1>
+        <small id="hdr-meta">Loading...</small>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="users">Users &amp; Keys</button>
+      <button class="tab" data-tab="settings">Gate &amp; Reader</button>
+      <button class="tab" data-tab="network">Network</button>
+      <button class="tab" data-tab="system">System</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="toast" class="toast hidden"></div>
+
+    <div id="learn-banner" class="banner hidden">
+      <div>
+        <strong>New Tag Scanned:</strong>
+        <code id="learn-code"></code> (<span id="learn-bits"></span>-bit)
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btn-learn-add">Enroll User</button>
+        <button class="btn ghost" id="btn-learn-dismiss">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="tab-overview" class="panel active">
+      <details class="guide">
+        <summary>Quick Start Guide (4 steps)</summary>
+        <ol class="steps">
+          <li><strong>Pick How Your Gate Works:</strong> Open <em>Gate &amp; Reader</em> and tap the picture matching your setup.</li>
+          <li><strong>Verify I/O:</strong> Trigger Open/Close here and watch live <code>R1/R2</code> and <code>IN1–IN3</code> pills.</li>
+          <li><strong>Enroll Keys:</strong> Scan any card/fob on the reader, then click <em>Enroll User</em> above.</li>
+          <li><strong>Connect:</strong> Configure Wi-Fi &amp; MQTT in the <em>Network</em> tab.</li>
+        </ol>
+      </details>
+
+      <div class="grid two">
+        <div class="card">
+          <div class="card-head">
+            <h2 id="ctl-title">Gate Control</h2>
+            <span class="badge" id="gate-badge">UNKNOWN</span>
+          </div>
+          <div class="controls">
+            <button class="btn primary" id="btn-act-open" data-act="open">Open</button>
+            <button class="btn" id="btn-act-close" data-act="close">Close</button>
+            <button class="btn" id="btn-act-stop" data-act="stop">Stop</button>
+            <button class="btn" id="btn-act-trigger" data-act="trigger">Pulse</button>
+            <button class="btn" id="btn-act-ped" data-act="pedestrian">Pedestrian</button>
+          </div>
+          <div class="io-strip" title="Live hardware state (updates every 2s)">
+            <span class="pill" id="io-r1">R1: OFF</span>
+            <span class="pill" id="io-r2">R2: OFF</span>
+            <span class="pill" id="io-in1">IN1: OFF</span>
+            <span class="pill" id="io-in2">IN2: OFF</span>
+            <span class="pill" id="io-in3">IN3: OFF</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Device Health</h2></div>
+          <dl class="kv">
+            <dt>Mode</dt><dd id="st-mode">—</dd>
+            <dt>Sensor</dt><dd id="st-sensor">—</dd>
+            <dt>Supply (VIN)</dt><dd id="st-vin">—</dd>
+            <dt>Wi-Fi</dt><dd id="st-wifi">—</dd>
+            <dt>MQTT / HA</dt><dd id="st-mqtt">—</dd>
+            <dt>Enrolled Keys</dt><dd id="st-users">—</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Recent Events</h2>
+          <button class="btn ghost small" id="btn-refresh-events">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Event</th><th>Source</th><th>User</th><th>Code / Detail</th></tr></thead>
+            <tbody id="events-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section id="tab-users" class="panel">
+      <div class="card">
+        <div class="card-head">
+          <h2 id="user-form-title">Add Key / User</h2>
+          <button class="btn ghost small" id="btn-fill-scan">Use Last Scanned Tag</button>
+        </div>
+        <p class="hint-bar">Scan an unknown card or fob at the reader to capture its code automatically. For keypad PINs, enter 4–8 digits followed by <code>#</code> (<code>*</code> clears).</p>
+        <form id="user-form" class="grid three">
+          <input type="hidden" id="u-id" value="0" />
+          <label>Name <input type="text" id="u-name" placeholder="e.g. Front Keyfob" required /></label>
+          <label>Card / UHF Tag Code <input type="text" id="u-card" placeholder="2764857 or Hex" /></label>
+          <label>Keypad PIN <input type="text" id="u-pin" placeholder="4-8 digits (optional)" /></label>
+          <label>Relay Target
+            <select id="u-target">
+              <option value="primary">Primary (Gate / Door 1)</option>
+              <option value="pedestrian">Pedestrian / Door 2 (Relay 2)</option>
+              <option value="both">Both Relays</option>
+            </select>
+          </label>
+          <label class="chk"><input type="checkbox" id="u-enabled" checked /> Enabled</label>
+          <div class="row align-end">
+            <button type="submit" class="btn primary">Save User</button>
+            <button type="button" class="btn ghost" id="btn-user-cancel">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Enrolled Users (<span id="users-count">0</span>)</h2>
+          <input type="search" id="user-search" placeholder="Search name or code..." class="search" />
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Card / Tag</th><th>PIN</th><th>Target</th><th>Hits</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- GATE & READER SETTINGS -->
+    <section id="tab-settings" class="panel">
+      <div class="card">
+        <div class="card-head">
+          <h2>1. How should a card read operate your gate or door?</h2>
+          <span class="muted">Tap the scenario that matches your physical setup</span>
+        </div>
+        <div class="scenario-grid" id="flow-cards"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>2. How does the gateway know if it is Open or Closed?</h2>
+          <span class="muted">Tap the sensor wiring you have</span>
+        </div>
+        <div class="scenario-grid four" id="sensor-cards"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Live Terminal Diagram</h2>
+          <span class="muted">Updates automatically from your selections above</span>
+        </div>
+        <div id="live-diagram" class="diagram-wrap"></div>
+      </div>
+
+      <form id="cfg-form">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-head"><h2>Relay &amp; Timing Tuning</h2></div>
+            <div class="stack">
+              <label>Device Name <input type="text" id="c-dev-name" /></label>
+              <label>Control Mode
+                <select id="c-relay-mode">
+                  <option value="gate_dual">Dual-Relay (R1 = Open, R2 = Close)</option>
+                  <option value="gate_pulse">Single-Button Step (R1 = Step, R2 = Pedestrian)</option>
+                  <option value="door">Single Door Lock (R1 = Lock, R2 = Aux)</option>
+                  <option value="dual_door">Two Doors (R1 = Door 1, R2 = Door 2)</option>
+                </select>
+                <small class="hint" id="hint-relay-mode"></small>
+              </label>
+              <div class="grid two">
+                <label>Relay 1 Pulse (ms)
+                  <input type="number" id="c-r1-ms" min="100" max="60000" />
+                  <small class="hint">Gate: 500–800 ms · Door strike: 2000–5000 ms</small>
+                </label>
+                <label>Relay 2 Pulse (ms)
+                  <input type="number" id="c-r2-ms" min="100" max="60000" />
+                  <small class="hint">Close / Pedestrian / Door 2 duration</small>
+                </label>
+              </div>
+              <label id="grp-travel">Full Open / Close Travel Time (ms)
+                <input type="number" id="c-travel-ms" min="1000" max="120000" />
+                <small class="hint">Time for gate to move end-to-end</small>
+              </label>
+              <div>
+                <label class="chk"><input type="checkbox" id="c-r1-hold" /> Keep Relay 1 latched on Open</label>
+                <small class="hint">For fail-safe maglocks or hold-open inputs (stays ON until Close)</small>
+              </div>
+              <div class="grid two">
+                <label class="chk"><input type="checkbox" id="c-r1-inv" /> Invert Relay 1</label>
+                <label class="chk"><input type="checkbox" id="c-r2-inv" /> Invert Relay 2</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Sensor &amp; Exit Button Tuning</h2></div>
+            <div class="stack">
+              <label>Position Sensing Mode
+                <select id="c-sensor-mode">
+                  <option value="single_reed">Single Contact Switch (IN1 = Closed)</option>
+                  <option value="dual_limit">Dual Limit Switches (IN1 = Closed, IN2 = Open)</option>
+                  <option value="roger_b70">Blinking Status + Confirm (IN1, IN2)</option>
+                  <option value="timer_fallback">Timer Estimate Only (No sensors)</option>
+                </select>
+                <small class="hint" id="hint-sensor-mode"></small>
+              </label>
+              <div id="grp-blink" class="stack">
+                <label>Blinking Indicator Timeout (ms)
+                  <input type="number" id="c-sc-blink" min="500" max="10000" />
+                  <small class="hint">If IN1 toggles faster than this window, state is Moving</small>
+                </label>
+                <label class="chk"><input type="checkbox" id="c-cor-open" /> Confirm input (IN2) active means Open (uncheck = Closed)</label>
+              </div>
+              <div class="grid two" id="grp-in-inv">
+                <label class="chk"><input type="checkbox" id="c-in1-inv" /> Invert IN1 (NC contact)</label>
+                <label class="chk"><input type="checkbox" id="c-in2-inv" /> Invert IN2 (NC contact)</label>
+              </div>
+              <hr class="sep" />
+              <label class="chk"><input type="checkbox" id="c-in3-en" /> Enable IN3 Exit / Push Button (REX)</label>
+              <div id="grp-in3" class="stack">
+                <label class="chk"><input type="checkbox" id="c-in3-ped" /> IN3 triggers Pedestrian / Relay 2 instead of Primary</label>
+                <label class="chk"><input type="checkbox" id="c-in3-inv" /> Invert IN3 (NC pushbutton)</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Wiegand Reader &amp; Feedback</h2></div>
+          <div class="grid two">
+            <div class="stack">
+              <label>Wiegand Frame Format
+                <select id="c-wg-bits">
+                  <option value="0">Auto-Detect (26 / 34 / 37 / 58-bit)</option>
+                  <option value="26">Strict 26-bit (Standard RFID)</option>
+                  <option value="34">Strict 34-bit</option>
+                  <option value="37">Strict 37-bit</option>
+                  <option value="58">Strict 58-bit (Long-range UHF)</option>
+                </select>
+              </label>
+              <div class="grid two">
+                <label>Granted Beep (ms) <input type="number" id="c-wg-beep-ms" min="0" max="2000" /></label>
+                <label>Granted LED (ms) <input type="number" id="c-wg-led-ms" min="200" max="10000" /></label>
+              </div>
+            </div>
+            <div class="stack">
+              <div class="grid two">
+                <label>Denied Beeps <input type="number" id="c-wg-denied" min="0" max="10" /></label>
+                <label>PIN Entry Timeout (ms) <input type="number" id="c-pin-to" min="1000" max="30000" /></label>
+              </div>
+              <label class="chk"><input type="checkbox" id="c-keypad-en" /> Enable 4/8-bit Wiegand Keypad PINs</label>
+              <div class="grid two">
+                <label class="chk"><input type="checkbox" id="c-led-low" /> LED Active-Low <small class="hint">(standard)</small></label>
+                <label class="chk"><input type="checkbox" id="c-beep-low" /> BEEP Active-Low <small class="hint">(standard)</small></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky-save">
+          <button type="submit" class="btn primary">Save Gate &amp; Reader Settings</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- NETWORK (Wi-Fi & MQTT / Home Assistant) -->
+    <section id="tab-network" class="panel">
+      <form id="net-form">
+        <div class="grid two">
+          <div class="card">
+            <div class="card-head"><h2>Wi-Fi Connection</h2></div>
+            <div class="stack">
+              <label>Wi-Fi SSID
+                <input type="text" id="c-wifi-ssid" placeholder="Network name" />
+                <small class="hint">Leave empty to start setup Access Point (Wiegand-Gateway-XXXX)</small>
+              </label>
+              <label>Wi-Fi Password
+                <input type="password" id="c-wifi-pass" placeholder="(unchanged)" />
+              </label>
+              <label>mDNS Hostname (.local)
+                <input type="text" id="c-wifi-host" />
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>MQTT &amp; Home Assistant</h2></div>
+            <div class="stack">
+              <label class="chk"><input type="checkbox" id="c-mqtt-en" /> Enable MQTT Client</label>
+              <div class="grid two">
+                <label>Broker Host <input type="text" id="c-mqtt-host" placeholder="192.168.1.10" /></label>
+                <label>Port <input type="number" id="c-mqtt-port" min="1" max="65535" /></label>
+              </div>
+              <div class="grid two">
+                <label>Username <input type="text" id="c-mqtt-user" /></label>
+                <label>Password <input type="password" id="c-mqtt-pass" placeholder="(unchanged)" /></label>
+              </div>
+              <div class="grid two">
+                <label>Base Topic <input type="text" id="c-mqtt-topic" /></label>
+                <label>HA Discovery Prefix <input type="text" id="c-mqtt-ha-pfx" /></label>
+              </div>
+              <label class="chk"><input type="checkbox" id="c-mqtt-ha" /> Publish Home Assistant Auto-Discovery</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky-save">
+          <button type="submit" class="btn primary">Save &amp; Reconnect Network</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SYSTEM -->
+    <section id="tab-system" class="panel">
+      <div class="grid two">
+        <div class="card">
+          <div class="card-head"><h2>Firmware Update (OTA)</h2></div>
+          <p class="muted">Upload <code>firmware.bin</code>. Both firmware and this Web UI update atomically.</p>
+          <div class="stack">
+            <label for="ota-file" class="dropzone" id="ota-drop">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span class="dz-title" id="ota-file-name">Drop <code>firmware.bin</code> here or click to browse</span>
+              <span class="dz-sub" id="ota-file-meta">Accepts compiled ESP32-C6 .bin image</span>
+              <input type="file" id="ota-file" accept=".bin" class="sr-only" />
+            </label>
+            <div class="prog-row hidden" id="ota-prog-wrap">
+              <progress id="ota-prog" max="100" value="0"></progress>
+              <span class="muted" id="ota-prog-pct">0%</span>
+            </div>
+            <button class="btn primary" id="btn-ota-upload" disabled>Upload &amp; Flash</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Maintenance</h2></div>
+          <p class="muted">Physical recovery button (<code>RST</code>): tap = reboot, hold 5 s = AP setup portal, hold 10 s = factory reset.</p>
+          <div class="stack">
+            <button class="btn" id="btn-reboot">Reboot Device</button>
+            <button class="btn danger" id="btn-factory-reset">Factory Reset</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

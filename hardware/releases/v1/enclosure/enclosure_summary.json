@@ -1,0 +1,15 @@
+{
+  "outer_mm": [
+    78.8,
+    58.8,
+    27.7
+  ],
+  "pcb_mm": [
+    74.0,
+    54.0,
+    1.6
+  ],
+  "base_solids": 1,
+  "lid_solids": 1,
+  "plate_solids": 2
+}

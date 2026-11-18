@@ -1,0 +1,358 @@
+{
+  "net_settings": {
+    "classes": [
+      {
+        "name": "Default",
+        "priority": 2147483647,
+        "clearance": 0.2,
+        "track_width": 0.2,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "diff_pair_gap": 0.25,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "wire_width": 6,
+        "bus_width": 12,
+        "line_style": 0,
+        "pcb_color": "rgba(0,0,0,0)",
+        "schematic_color": "rgba(0,0,0,0)"
+      },
+      {
+        "name": "SELV-MAIN",
+        "priority": 2,
+        "clearance": 0.2,
+        "track_width": 0.2,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "diff_pair_gap": 0.25,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "wire_width": 6,
+        "bus_width": 12,
+        "line_style": 0,
+        "pcb_color": "rgba(0,0,0,0)",
+        "schematic_color": "rgba(0,0,0,0)"
+      },
+      {
+        "name": "MAIN-Power",
+        "priority": 1,
+        "clearance": 0.2,
+        "track_width": 0.35,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "diff_pair_gap": 0.25,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "wire_width": 6,
+        "bus_width": 12,
+        "line_style": 0,
+        "pcb_color": "rgba(0,0,0,0)",
+        "schematic_color": "rgba(0,0,0,0)"
+      }
+    ],
+    "netclass_patterns": [
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "+12V_RDR"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "+12V_RDR_OUT"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "+3V3"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "+5V"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "+5V_XIAO"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "12V_BST"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "12V_CC"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "12V_COMP"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "12V_EN"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "12V_FB"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "12V_RT"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "12V_SW"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "5V_BST"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "5V_CC"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "5V_COMP"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "5V_EN"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "5V_FB"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "5V_RT"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "5V_SW"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "BTN_RESTART"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "EXP_INT"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "EXP_P7"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "GND"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "I2C_SCL"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "I2C_SDA"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN1_LED_A"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN1_MCU"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN1_MID"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN1_N"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN1_P"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN2_LED_A"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN2_MCU"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN2_MID"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN2_N"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN2_P"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN3_LED_A"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN3_MCU"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN3_MID"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN3_N"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "IN3_P"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "LED_BUF"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "LED_CHAIN1"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "LED_DATA"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "LED_DIN"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "R1_BASE"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "R1_COIL_N"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "R1_COM"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "R1_NC"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "R1_NO"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "R2_BASE"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "R2_COIL_N"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "R2_COM"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "R2_NC"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "R2_NO"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "RELAY1_DRV"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "RELAY2_DRV"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "VIN_ADC"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "VIN_FUSED"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "VIN_PROT"
+      },
+      {
+        "netclass": "MAIN-Power",
+        "pattern": "VIN_RAW"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_BEEP_BASE"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_BEEP_COL"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_BEEP_DRV"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_BEEP_TERM"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_D0_IN"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_D0_MCU"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_D0_TERM"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_D1_IN"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_D1_MCU"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_D1_TERM"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_LED_BASE"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_LED_COL"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_LED_DRV"
+      },
+      {
+        "netclass": "SELV-MAIN",
+        "pattern": "WG_LED_TERM"
+      }
+    ]
+  }
+}

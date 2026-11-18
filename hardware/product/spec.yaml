@@ -1,0 +1,155 @@
+# Single source of truth for Wiegand Gateway PCBs and the compact JLC3DP enclosure
+# sized for the ROGER BH30 battery compartment.
+# Units: millimetres. Board coordinate system (main PCB, top view, +y = gate/relay edge, -y = power/reader edge):
+#   x = 0.0 .. 74.0 mm
+#   y = 0.0 .. 54.0 mm
+#   z = 0.0 at main PCB bottom face; tall/THT parts on F.Cu (+z), low-profile SMDs split across F.Cu & B.Cu
+
+product:
+  name: Wiegand Gateway
+  revision: A
+  release: v1
+  status: draft-unvalidated
+
+active_variant: v1
+
+envelope:
+  outer_width: 80.0
+  outer_depth: 60.0
+  outer_height: 29.5
+  wall: 2.0
+  min_clearance_to_pcb: 0.4
+  fasteners: "4 x M3x12 stainless socket head screws + 4 x M3 hex nuts"
+
+enclosure:
+  material: PA12-or-ASA
+  wall: 2.0
+  min_clearance_to_pcb: 0.4
+  parts: [base, lid]
+
+variants:
+  v1:
+    description: "Compact ESP32-C6 Wiegand + ROGER BH30/610/HS Gate & Door Controller (9-32V in, 12V reader, 2x Form-C relays, 3x opto inputs, 2x RGB LED, Restart button)"
+    boards: [main]
+
+boards:
+  main:
+    plane: horizontal-xy
+    thickness: 1.6
+    max_outline: { width: 74.0, height: 54.0 }
+    domains:
+      SELV-MAIN: all
+
+# --- BEGIN GENERATED (hardware/scripts/gen_circuits.py) ---
+derived:
+  mcu_pins:
+    vin_adc:
+      pin: D0/GPIO0
+      net: VIN_ADC
+      note: ADC1_CH0 supply monitor (11:1)
+    btn_restart:
+      pin: D1/GPIO1
+      net: BTN_RESTART
+      note: Restart / AP setup / Factory reset button
+    wg_d0:
+      pin: D2/GPIO2
+      net: WG_D0_MCU
+      note: Wiegand D0 Schmitt-buffered ISR input
+    led_data:
+      pin: D3/GPIO21
+      net: LED_DATA
+      note: 2x WS2812B-MINI-V3J RGB LEDs via 5V buffer
+    i2c_sda:
+      pin: D4/GPIO22
+      net: I2C_SDA
+      note: PCA9534/TCA9534 I2C SDA
+    i2c_scl:
+      pin: D5/GPIO23
+      net: I2C_SCL
+      note: PCA9534/TCA9534 I2C SCL
+    wg_d1:
+      pin: D9/GPIO20
+      net: WG_D1_MCU
+      note: Wiegand D1 Schmitt-buffered ISR input
+    exp_int:
+      pin: D10/GPIO18
+      net: EXP_INT
+      note: TCA9534 /INT active LOW
+  net_classes:
+    main:
+      SELV-MAIN:
+      - GND
+      - +3V3
+      - +5V
+      - +5V_XIAO
+      - +12V_RDR
+      - +12V_RDR_OUT
+      - VIN_ADC
+      - BTN_RESTART
+      - LED_DATA
+      - LED_BUF
+      - LED_DIN
+      - LED_CHAIN1
+      - I2C_SDA
+      - I2C_SCL
+      - EXP_INT
+      - EXP_P7
+      - WG_D0_TERM
+      - WG_D1_TERM
+      - WG_D0_IN
+      - WG_D1_IN
+      - WG_D0_MCU
+      - WG_D1_MCU
+      - WG_LED_DRV
+      - WG_BEEP_DRV
+      - WG_LED_TERM
+      - WG_BEEP_TERM
+      - WG_LED_COL
+      - WG_BEEP_COL
+      - WG_LED_BASE
+      - WG_BEEP_BASE
+      - RELAY1_DRV
+      - RELAY2_DRV
+      - R1_BASE
+      - R2_BASE
+      - R1_COIL_N
+      - R2_COIL_N
+      - R1_COM
+      - R1_NO
+      - R1_NC
+      - R2_COM
+      - R2_NO
+      - R2_NC
+      - IN1_MCU
+      - IN2_MCU
+      - IN3_MCU
+      - IN1_P
+      - IN1_N
+      - IN1_MID
+      - IN1_LED_A
+      - IN2_P
+      - IN2_N
+      - IN2_MID
+      - IN2_LED_A
+      - IN3_P
+      - IN3_N
+      - IN3_MID
+      - IN3_LED_A
+      - Net-*
+      MAIN-Power:
+      - VIN_RAW
+      - VIN_FUSED
+      - VIN_PROT
+      - +5V
+      - +5V_XIAO
+      - +12V_RDR
+      - +12V_RDR_OUT
+      - 5V_SW
+      - 12V_SW
+      - R1_COM
+      - R1_NO
+      - R1_NC
+      - R2_COM
+      - R2_NO
+      - R2_NC
+# --- END GENERATED ---

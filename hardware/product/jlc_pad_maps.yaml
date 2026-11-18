@@ -1,0 +1,4 @@
+# Parts whose EasyEDA footprint numbers pads differently from KiCad.
+C20526:
+  # MMBT3904 SOT-23: EasyEDA 1=B, 2=E, 3=C matches KiCad Transistors_SMD SOT-23.
+  map: { "1": ["1"], "2": ["2"], "3": ["3"] }

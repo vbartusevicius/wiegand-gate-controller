@@ -1,0 +1,4 @@
+Item,Quantity,Part,Mouser,Digi-Key,TME,Other sources
+MCU module (socketed),1,Seeed Studio XIAO ESP32C6 Pre-Soldered (SKU 102010636),,1597-102010636-ND,,Digi-Key 1597-102010636-ND / Mouser / Seeed Studio
+XIAO sockets (hand-soldered),2,"Samtec CES-107-02-G-S (1x7 2.54 mm female header, 5.08 mm tall)",200-CES10702GS,,,Mouser 200-CES10702GS / Digi-Key
+2-pole 3.5 mm SMD push-in terminal block,1,WAGO 2086-1202/700-000/997-604 (2-pole 3.5 mm SMD push-in),,2946-2086-1202/700-000/997-604CT-ND,,Digi-Key 2946-2086-1202/700-000/997-604CT-ND / Mouser

@@ -1,0 +1,7 @@
+Item,Qty,Category,Part,Description,Source
+MCU module (socketed),1,electronics,Seeed Studio XIAO ESP32C6 Pre-Soldered (SKU 102010636),Plugs into two 1x7 2.54 mm female sockets (main U3),Digi-Key 1597-102010636-ND / Mouser / Seeed Studio
+XIAO sockets (hand-soldered),2,electronics,"Samtec CES-107-02-G-S (1x7 2.54 mm female header, 5.08 mm tall)",Female sockets soldered onto main U3,Mouser 200-CES10702GS / Digi-Key
+2-pole 3.5 mm SMD push-in terminal block,1,electronics,WAGO 2086-1202/700-000/997-604 (2-pole 3.5 mm SMD push-in),Hand-soldered onto main J1 (not stocked at JLCPCB),Digi-Key 2946-2086-1202/700-000/997-604CT-ND / Mouser
+2.4 GHz U.FL (IPEX-1) Flexible PCB Dipole Antenna,1,electronics,Molex 1461530100 (100 mm U.FL coax; LCSC C152350),"Plugs into XIAO ESP32-C6 U.FL jack (GPIO3=LOW, GPIO14=HIGH); sticks to inner lid shelf",Mouser 538-1461530100 / Digi-Key WM13992-ND / LCSC C152350
+3D-printed enclosure (base + lid print plate),1,printed,enclosure/print/enclosure_plate.stl (MJF PA12 or UV-stabilised ASA),Compact 78.8 x 58.8 x 27.7 mm enclosure (94.8 mm across ears) sized for the ROGER BH30 battery bay,JLC3DP (PA12 / ASA)
+M3 Stainless Fastener Set,1,utility,4x M3x12 DIN 912 / ISO 4762 socket head screws + 4x M3 hex nuts (DIN 934),Secures the enclosure lid to base through the 4 corner bosses,Local hardware / McMaster-Carr

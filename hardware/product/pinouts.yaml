@@ -1,0 +1,25 @@
+# Hand-fitted parts or JLCPCB parts without an EasyEDA footprint, keyed by MPN.
+"2086-1202/700-000/997-604":
+  source: >-
+    WAGO 2086 series data sheet (2086-1202/700-000/997-604): 2-pole 3.5 mm SMD
+    push-in terminal block, two in-line SMD solder pins per pole at +-4.4 mm.
+  pads:
+    "1": [[-1.75, 4.4], [-1.75, -4.4]]
+    "2": [[1.75, 4.4], [1.75, -4.4]]
+  nets:
+    "1": VIN_RAW
+    "2": GND
+
+"2086-1203/700-000/997-605":
+  source: >-
+    WAGO 2086-1203/700-000/997-605 (C3309626, stocked/assembled by JLCPCB;
+    same per-pole land pattern as C3309718 CONN-SMD_4P-P3.50_2086-1204): 3 poles,
+    3.5 mm pitch, two 1.6 x 3.9 mm pads per pole at +-4.4 mm.
+  pads:
+    "1": [[-3.5, 4.4], [-3.5, -4.4]]
+    "2": [[0.0, 4.4], [0.0, -4.4]]
+    "3": [[3.5, 4.4], [3.5, -4.4]]
+  nets:
+    "1": [+12V_RDR_OUT, WG_D1_TERM, R1_COM, R2_COM]
+    "2": [GND, WG_LED_TERM, R1_NO, R2_NO]
+    "3": [WG_D0_TERM, WG_BEEP_TERM, R1_NC, R2_NC]
