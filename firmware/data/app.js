@@ -183,6 +183,67 @@
     },
   ];
 
+  const REPEAT_SCENARIOS = [
+    {
+      id: "toggle_instant",
+      title: "Toggle Open / Close (Tap)",
+      desc: "Every scan acts immediately (opens when closed, closes/steps when open). Best for walk-up readers.",
+      apply: { action: "toggle", cooldown: 0 },
+      match: (rd) => rd.action === "toggle" && rd.cooldown === 0,
+      svg: `<svg viewBox="0 0 180 64" fill="none">
+        <rect x="2" y="6" width="54" height="22" rx="4" stroke="#3b82f6" stroke-width="1.4" fill="#171f27"/>
+        <text x="29" y="21" text-anchor="middle" fill="#e8eef4" font-size="9.5" font-weight="600" font-family="sans-serif">TAP 1</text>
+        <path d="M56 17 H76" stroke="#22c55e" stroke-width="1.6"/>
+        <rect x="77" y="6" width="100" height="22" rx="4" stroke="#22c55e" stroke-width="1.4" fill="#171f27"/>
+        <text x="127" y="21" text-anchor="middle" fill="#22c55e" font-size="9.5" font-weight="600" font-family="sans-serif">OPEN IMMEDIATELY</text>
+        <rect x="2" y="36" width="54" height="22" rx="4" stroke="#3b82f6" stroke-width="1.4" fill="#171f27"/>
+        <text x="29" y="51" text-anchor="middle" fill="#e8eef4" font-size="9.5" font-weight="600" font-family="sans-serif">TAP 2</text>
+        <path d="M56 47 H76" stroke="#f59e0b" stroke-width="1.6"/>
+        <rect x="77" y="36" width="100" height="22" rx="4" stroke="#f59e0b" stroke-width="1.4" fill="#171f27"/>
+        <text x="127" y="51" text-anchor="middle" fill="#f59e0b" font-size="9.5" font-weight="600" font-family="sans-serif">CLOSE / STEP</text>
+      </svg>`,
+    },
+    {
+      id: "toggle_cooldown",
+      title: "Toggle + Anti-Bounce Cooldown",
+      desc: "Opens & closes on card reads, while ignoring duplicate scans during the cooldown window.",
+      apply: { action: "toggle", cooldown: 15000 },
+      match: (rd) => rd.action === "toggle" && rd.cooldown > 0,
+      svg: `<svg viewBox="0 0 180 64" fill="none">
+        <rect x="2" y="6" width="48" height="22" rx="4" stroke="#22c55e" stroke-width="1.4" fill="#171f27"/>
+        <text x="26" y="21" text-anchor="middle" fill="#22c55e" font-size="9.5" font-weight="600" font-family="sans-serif">SCAN 1</text>
+        <path d="M50 17 H64" stroke="#22c55e" stroke-width="1.6"/>
+        <rect x="65" y="6" width="54" height="22" rx="4" stroke="#22c55e" stroke-width="1.4" fill="#171f27"/>
+        <text x="92" y="21" text-anchor="middle" fill="#22c55e" font-size="9.5" font-weight="600" font-family="sans-serif">OPEN</text>
+        <rect x="125" y="6" width="53" height="22" rx="4" stroke="#f59e0b" stroke-width="1.3" fill="#171f27"/>
+        <text x="151" y="21" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600" font-family="sans-serif">WAIT 15s</text>
+        <rect x="2" y="36" width="84" height="22" rx="4" stroke="#8fa1b3" stroke-width="1.3" stroke-dasharray="3 2" fill="#171f27"/>
+        <text x="44" y="51" text-anchor="middle" fill="#8fa1b3" font-size="9" font-weight="600" font-family="sans-serif">REPEAT → SKIP</text>
+        <rect x="94" y="36" width="84" height="22" rx="4" stroke="#f59e0b" stroke-width="1.4" fill="#171f27"/>
+        <text x="136" y="51" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600" font-family="sans-serif">LATER → CLOSE</text>
+      </svg>`,
+    },
+    {
+      id: "open_only",
+      title: "Open Only (Long-Range UHF)",
+      desc: "Never closes or reverses while open/opening, and ignores duplicate scans. Gate closes via auto-close.",
+      apply: { action: "open_only", cooldown: 15000 },
+      match: (rd) => rd.action === "open_only",
+      svg: `<svg viewBox="0 0 180 64" fill="none">
+        <rect x="2" y="6" width="52" height="22" rx="4" stroke="#3b82f6" stroke-width="1.4" fill="#171f27"/>
+        <text x="28" y="21" text-anchor="middle" fill="#e8eef4" font-size="9.5" font-weight="600" font-family="sans-serif">UHF CAR</text>
+        <path d="M54 17 H69" stroke="#22c55e" stroke-width="1.6"/>
+        <rect x="70" y="6" width="56" height="22" rx="4" stroke="#22c55e" stroke-width="1.4" fill="#171f27"/>
+        <text x="98" y="21" text-anchor="middle" fill="#22c55e" font-size="9.5" font-weight="600" font-family="sans-serif">R1 OPEN</text>
+        <rect x="2" y="36" width="124" height="22" rx="4" stroke="#3b82f6" stroke-width="1.3" stroke-dasharray="3 2" fill="#171f27"/>
+        <text x="64" y="51" text-anchor="middle" fill="#8fa1b3" font-size="9" font-weight="600" font-family="sans-serif">IF OPEN → IGNORE</text>
+        <path d="M132 17 C163 10, 174 23, 174 34 C174 45, 163 56, 132 49" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 2"/>
+        <text x="155" y="31" text-anchor="middle" fill="#f59e0b" font-size="8.5" font-weight="600" font-family="sans-serif">AUTO</text>
+        <text x="155" y="42" text-anchor="middle" fill="#f59e0b" font-size="8.5" font-weight="600" font-family="sans-serif">CLOSE</text>
+      </svg>`,
+    },
+  ];
+
   function notify(msg, isErr = false) {
     const el = byId("toast");
     el.textContent = msg;
@@ -264,14 +325,34 @@
         updateSettingsVisibility();
       });
     });
+
+    const repHost = byId("repeat-cards");
+    repHost.innerHTML = REPEAT_SCENARIOS.map(
+      (s) => `<button type="button" class="sc-card" data-repeat="${s.id}">
+        ${s.svg}
+        <span class="sc-title">${s.title}</span>
+        <span class="sc-desc">${s.desc}</span>
+      </button>`
+    ).join("");
+    repHost.querySelectorAll("[data-repeat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sc = REPEAT_SCENARIOS.find((x) => x.id === btn.dataset.repeat);
+        if (!sc) return;
+        byId("c-card-action").value = sc.apply.action;
+        byId("c-card-cooldown").value = sc.apply.cooldown;
+        updateSettingsVisibility();
+      });
+    });
   }
 
-  function renderLiveDiagram(rMode, sMode, r1Hold, in3En, in3Ped) {
-    const r1Txt = rMode === "gate_dual" ? "Open Motor (Pulse)" : rMode === "gate_pulse" ? "Step Motor (Open/Stop/Close)" : rMode === "dual_door" ? "Door 1 Lock" : r1Hold ? "Lock Output (Latched)" : "Lock Strike (Pulse)";
-    const r2Txt = rMode === "gate_dual" ? "Close Motor (Pulse)" : rMode === "gate_pulse" ? "Pedestrian / Partial" : rMode === "dual_door" ? "Door 2 Lock" : "Aux Output";
+  function renderLiveDiagram(rMode, sMode, r1Hold, in3En, in3Ped, cardAction, cooldownMs, wgBits) {
+    const isOpenOnly = cardAction === "open_only";
+    const r1Txt = rMode === "gate_dual" ? (isOpenOnly ? "Open Motor (Card / UHF)" : "Open Motor (Pulse)") : rMode === "gate_pulse" ? "Step Motor (Open/Stop/Close)" : rMode === "dual_door" ? "Door 1 Lock" : r1Hold ? "Lock Output (Latched)" : "Lock Strike (Pulse)";
+    const r2Txt = rMode === "gate_dual" ? (isOpenOnly ? "Close Motor (Web / MQTT / Auto)" : "Close Motor (Pulse)") : rMode === "gate_pulse" ? "Pedestrian / Partial" : rMode === "dual_door" ? "Door 2 Lock" : "Aux Output";
     const in1Txt = sMode === "single_reed" ? "Closed Contact" : sMode === "dual_limit" ? "Closed Limit" : sMode === "roger_b70" ? "Status (0V/Blink/24V)" : "Unused";
     const in2Txt = sMode === "dual_limit" ? "Open Limit" : sMode === "roger_b70" ? "Confirm" : "Unused";
     const in3Txt = !in3En ? "Disabled" : in3Ped ? "Exit Button -> Pedestrian (R2)" : "Exit Button -> Primary";
+    const wgModeTxt = `${wgBits === "0" ? "Auto bits" : wgBits + "-bit"} · ${isOpenOnly ? "Open-Only" : "Toggle"}${cooldownMs > 0 ? " · " + (cooldownMs / 1000).toFixed(0) + "s wait" : ""}`;
 
     byId("live-diagram").innerHTML = `
       <svg viewBox="0 0 820 180" fill="none">
@@ -280,8 +361,8 @@
         <text x="108" y="57" text-anchor="middle" fill="#8fa1b3" font-size="11.5" font-family="sans-serif">WIEGAND: 12V · GND · D0 · D1</text>
         <text x="108" y="76" text-anchor="middle" fill="#8fa1b3" font-size="11.5" font-family="sans-serif">LED · BEEP · PWR: V+ · GND</text>
         <rect x="24" y="94" width="168" height="56" rx="6" stroke="#2a3744" fill="#0f1419"/>
-        <text x="108" y="118" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="600" font-family="sans-serif">Card / Fob / PIN</text>
-        <text x="108" y="137" text-anchor="middle" fill="#8fa1b3" font-size="11" font-family="sans-serif">Auto-detected bits</text>
+        <text x="108" y="118" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="600" font-family="sans-serif">Card / UHF / PIN</text>
+        <text x="108" y="137" text-anchor="middle" fill="#8fa1b3" font-size="10.5" font-family="sans-serif">${wgModeTxt}</text>
         <path d="M208 90 H248" stroke="#3b82f6" stroke-width="2"/>
 
         <rect x="248" y="12" width="236" height="156" rx="8" stroke="#22c55e" stroke-width="1.6" fill="#171f27"/>
@@ -313,6 +394,9 @@
     const r1Hold = byId("c-r1-hold").checked;
     const in3En = byId("c-in3-en").checked;
     const in3Ped = byId("c-in3-ped").checked;
+    const cardAction = byId("c-card-action").value;
+    const cooldownMs = Number(byId("c-card-cooldown").value || 0);
+    const wgBits = byId("c-wg-bits").value;
 
     byId("hint-relay-mode").textContent = MODE_HINTS[rMode] || "";
     byId("hint-sensor-mode").textContent = SENSOR_HINTS[sMode] || "";
@@ -331,8 +415,13 @@
     document.querySelectorAll("[data-sensor]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.sensor === sMode);
     });
+    const rdSnapshot = { action: cardAction, cooldown: cooldownMs };
+    document.querySelectorAll("[data-repeat]").forEach((btn) => {
+      const sc = REPEAT_SCENARIOS.find((x) => x.id === btn.dataset.repeat);
+      btn.classList.toggle("active", Boolean(sc && sc.match(rdSnapshot)));
+    });
 
-    renderLiveDiagram(rMode, sMode, r1Hold, in3En, in3Ped);
+    renderLiveDiagram(rMode, sMode, r1Hold, in3En, in3Ped, cardAction, cooldownMs, wgBits);
   }
 
   async function loadStatus() {
@@ -479,6 +568,8 @@
       byId("c-in3-inv").checked = c.sensor.in3_inverted;
 
       byId("c-wg-bits").value = String(c.reader.wiegand_bits);
+      byId("c-card-action").value = c.reader.card_action || "toggle";
+      byId("c-card-cooldown").value = c.reader.card_cooldown_ms ?? 0;
       byId("c-wg-beep-ms").value = c.reader.granted_beep_ms;
       byId("c-wg-led-ms").value = c.reader.granted_led_ms;
       byId("c-wg-denied").value = c.reader.denied_beeps;
@@ -551,9 +642,10 @@
     document.querySelectorAll("[data-act]").forEach((b) =>
       b.addEventListener("click", () => sendAction(b.dataset.act))
     );
-    ["c-relay-mode", "c-sensor-mode", "c-r1-hold", "c-in3-en", "c-in3-ped"].forEach((id) =>
+    ["c-relay-mode", "c-sensor-mode", "c-r1-hold", "c-in3-en", "c-in3-ped", "c-wg-bits", "c-card-action"].forEach((id) =>
       byId(id).addEventListener("change", updateSettingsVisibility)
     );
+    byId("c-card-cooldown").addEventListener("input", updateSettingsVisibility);
 
     byId("btn-refresh-events").addEventListener("click", loadEvents);
     byId("user-search").addEventListener("input", renderUsers);
@@ -617,6 +709,8 @@
           },
           reader: {
             wiegand_bits: Number(byId("c-wg-bits").value),
+            card_action: byId("c-card-action").value,
+            card_cooldown_ms: Number(byId("c-card-cooldown").value || 0),
             granted_beep_ms: Number(byId("c-wg-beep-ms").value),
             granted_led_ms: Number(byId("c-wg-led-ms").value),
             denied_beeps: Number(byId("c-wg-denied").value),

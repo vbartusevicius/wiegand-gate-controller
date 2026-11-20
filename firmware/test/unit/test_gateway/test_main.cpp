@@ -308,6 +308,93 @@ void test_antenna_auto_selection_and_json() {
     TEST_ASSERT_TRUE(json.find("\"antenna\":\"external\"") != std::string::npos);
 }
 
+void test_uhf_open_only_and_card_cooldown() {
+    core::GatewayApp app;
+    core::DeviceConfig cfg = app.config();
+    cfg.relay.mode = core::DeviceMode::GateDual;
+    cfg.relay.relay1_pulse_ms = 500;
+    cfg.relay.relay2_pulse_ms = 500;
+    cfg.sensor.mode = core::SensorMode::SingleReed;
+    cfg.reader.card_action = core::CardActionMode::Toggle;
+    cfg.reader.card_cooldown_ms = 15000;
+    app.applyConfig(cfg);
+
+    app.store().upsertUser({0, "Car A", "2764857", "1234", true, access::RelayTarget::Primary, 0});
+    app.store().upsertUser({0, "Car B", "999111", "", true, access::RelayTarget::Primary, 0});
+
+    // Gate closed -> Car A opens
+    app.onInputs({true, false, false}, 100);
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 1000);
+    TEST_ASSERT_TRUE(app.gate().relayOutputs().relay1);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay2);
+    TEST_ASSERT_EQUAL_UINT32(1, app.store().findById(1)->hits);
+
+    app.tick(1600, 1600000);
+    app.onInputs({false, false, false}, 2000);  // Gate is now Open
+    TEST_ASSERT_EQUAL(gate::GateState::Open, app.gate().state());
+
+    // Duplicate Car A inside 15s cooldown -> ignored (does not close)
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 5000);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay1);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay2);
+    TEST_ASSERT_EQUAL_UINT32(1, app.store().findById(1)->hits);
+
+    // Different card B is not blocked by Car A's cooldown -> toggles Close
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "999111", 1, 1, true}, 6000);
+    TEST_ASSERT_TRUE(app.gate().relayOutputs().relay2);
+    app.tick(6600, 6600000);
+
+    // Past cooldown in Toggle mode -> Car A toggles Close while Open
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 22000);
+    TEST_ASSERT_TRUE(app.gate().relayOutputs().relay2);
+    app.tick(22600, 22600000);
+
+    // Switch to OpenOnly with 5s cooldown
+    cfg.reader.card_action = core::CardActionMode::OpenOnly;
+    cfg.reader.card_cooldown_ms = 5000;
+    app.applyConfig(cfg);
+
+    app.onInputs({true, false, false}, 30000);  // Closed
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 31000);
+    TEST_ASSERT_TRUE(app.gate().relayOutputs().relay1);
+    TEST_ASSERT_EQUAL_UINT32(3, app.store().findById(1)->hits);
+    app.tick(31600, 31600000);
+
+    app.onInputs({false, false, false}, 32000);  // Open
+    // Even well past 5s cooldown, OpenOnly suppresses closing/re-pulsing while Open
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 45000);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay1);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay2);
+    TEST_ASSERT_EQUAL_UINT32(3, app.store().findById(1)->hits);
+
+    // TimerFallback + GateDual + OpenOnly: pulses Open (R1), never Close (R2), after cooldown
+    cfg.sensor.mode = core::SensorMode::TimerFallback;
+    cfg.relay.travel_time_ms = 5000;
+    app.applyConfig(cfg);
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 60000);
+    TEST_ASSERT_TRUE(app.gate().relayOutputs().relay1);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay2);
+    app.tick(60600, 60600000);
+
+    // GatePulse + SingleReed + OpenOnly: never pulses PP while Open
+    cfg.relay.mode = core::DeviceMode::GatePulse;
+    cfg.sensor.mode = core::SensorMode::SingleReed;
+    app.applyConfig(cfg);
+    app.onInputs({false, false, false}, 70000);  // Open
+    app.onWiegandEvent({wiegand::WiegandEvent::Kind::Card, 26, 0, "2764857", 42, 12345, true}, 75000);
+    TEST_ASSERT_FALSE(app.gate().relayOutputs().relay1);
+
+    // Config JSON patch & build round-trip
+    core::DeviceConfig patched;
+    TEST_ASSERT_TRUE(web::ApiJson::applyConfigPatch(
+        "{\"reader\":{\"card_action\":\"open_only\",\"card_cooldown_ms\":15000}}", patched));
+    TEST_ASSERT_EQUAL(core::CardActionMode::OpenOnly, patched.reader.card_action);
+    TEST_ASSERT_EQUAL_UINT32(15000, patched.reader.card_cooldown_ms);
+    const std::string cfg_json = web::ApiJson::buildConfig(patched);
+    TEST_ASSERT_TRUE(cfg_json.find("\"card_action\":\"open_only\"") != std::string::npos);
+    TEST_ASSERT_TRUE(cfg_json.find("\"card_cooldown_ms\":15000") != std::string::npos);
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_wiegand_26_valid_and_bad_parity);
@@ -318,5 +405,6 @@ int main() {
     RUN_TEST(test_ha_mqtt_discovery_and_gateway_app);
     RUN_TEST(test_restart_button_and_door_hold_open);
     RUN_TEST(test_antenna_auto_selection_and_json);
+    RUN_TEST(test_uhf_open_only_and_card_cooldown);
     return UNITY_END();
 }

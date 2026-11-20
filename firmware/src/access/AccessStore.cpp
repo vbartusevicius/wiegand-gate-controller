@@ -51,18 +51,38 @@ void AccessStore::clearUsers() {
     next_id_ = 1;
 }
 
-AuthMatch AccessStore::authorizeBy(const std::string& value, std::string UserEntry::* field) {
+AuthMatch AccessStore::peekBy(const std::string& value, std::string UserEntry::* field) const {
     if (value.empty()) {
         return {};
     }
-    for (auto& user : users_) {
+    for (const auto& user : users_) {
         const auto& stored = user.*field;
         if (user.enabled && !stored.empty() && stored == value) {
-            ++user.hits;
             return AuthMatch{true, user.id, user.name, user.target};
         }
     }
     return {};
+}
+
+void AccessStore::recordHit(std::uint32_t user_id) {
+    for (auto& user : users_) {
+        if (user.id == user_id) {
+            ++user.hits;
+            return;
+        }
+    }
+}
+
+AuthMatch AccessStore::authorizeBy(const std::string& value, std::string UserEntry::* field) {
+    const AuthMatch match = peekBy(value, field);
+    if (match.granted) {
+        recordHit(match.user_id);
+    }
+    return match;
+}
+
+AuthMatch AccessStore::peekCard(const std::string& code) const {
+    return peekBy(code, &UserEntry::card);
 }
 
 AuthMatch AccessStore::authorizeCard(const std::string& code) {

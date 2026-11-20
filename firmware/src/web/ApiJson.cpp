@@ -130,6 +130,8 @@ std::string ApiJson::buildConfig(const core::DeviceConfig& cfg) {
     reader["granted_beep_ms"] = cfg.reader.granted_beep_ms;
     reader["granted_led_ms"] = cfg.reader.granted_led_ms;
     reader["denied_beeps"] = cfg.reader.denied_beeps;
+    reader["card_action"] = core::toString(cfg.reader.card_action);
+    reader["card_cooldown_ms"] = cfg.reader.card_cooldown_ms;
 
     std::string out;
     serializeJson(doc, out);
@@ -194,6 +196,8 @@ bool ApiJson::applyConfigPatch(const std::string& json, core::DeviceConfig& cfg)
         readField(rd, "granted_beep_ms", cfg.reader.granted_beep_ms);
         readField(rd, "granted_led_ms", cfg.reader.granted_led_ms);
         readField(rd, "denied_beeps", cfg.reader.denied_beeps);
+        readEnum(rd, "card_action", cfg.reader.card_action, core::parseCardActionMode);
+        readField(rd, "card_cooldown_ms", cfg.reader.card_cooldown_ms);
     }
 
     return true;

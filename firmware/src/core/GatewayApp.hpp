@@ -57,6 +57,12 @@ private:
     std::uint64_t last_now_ms_{0};
     std::string last_user_;
     std::string last_code_;
+    bool has_last_granted_card_{false};
+    std::string last_granted_card_;
+    std::uint64_t last_granted_card_ms_{0};
+    bool has_last_denied_card_{false};
+    std::string last_denied_card_;
+    std::uint64_t last_denied_card_ms_{0};
 };
 
 }  // namespace core

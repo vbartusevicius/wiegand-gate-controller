@@ -80,16 +80,27 @@ void GateController::executeCommand(GateCommand cmd, std::uint64_t now_ms) {
     }
 }
 
-void GateController::executeAccessTarget(access::RelayTarget target, std::uint64_t now_ms) {
+bool GateController::shouldSuppressOpenOnly(access::RelayTarget target) const {
+    if (target == access::RelayTarget::Pedestrian) {
+        return false;
+    }
+    if (sensor_cfg_.mode == core::SensorMode::TimerFallback) {
+        return relay_cfg_.mode == core::DeviceMode::GatePulse && state_ == GateState::Opening;
+    }
+    return state_ == GateState::Open || state_ == GateState::Opening;
+}
+
+void GateController::executeAccessTarget(access::RelayTarget target, std::uint64_t now_ms, bool open_only) {
+    const GateCommand primary_cmd = open_only ? GateCommand::Open : GateCommand::TriggerPrimary;
     switch (target) {
     case access::RelayTarget::Primary:
-        executeCommand(GateCommand::TriggerPrimary, now_ms);
+        executeCommand(primary_cmd, now_ms);
         break;
     case access::RelayTarget::Pedestrian:
         executeCommand(GateCommand::Pedestrian, now_ms);
         break;
     case access::RelayTarget::Both:
-        executeCommand(GateCommand::TriggerPrimary, now_ms);
+        executeCommand(primary_cmd, now_ms);
         relays_.secondary.pulse(now_ms, relay_cfg_.relay2_pulse_ms);
         break;
     }

@@ -36,9 +36,15 @@ assert.equal(users.users.length, 3);
 await req("/api/config", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ sensor: { mode: "dual_limit" } }),
+  body: JSON.stringify({
+    sensor: { mode: "dual_limit" },
+    reader: { card_action: "open_only", card_cooldown_ms: 15000 },
+  }),
 });
 const cfg = await (await req("/api/config")).json();
 assert.equal(cfg.sensor.mode, "dual_limit");
+assert.equal(cfg.reader.card_action, "open_only");
+assert.equal(cfg.reader.card_cooldown_ms, 15000);
+assert.ok(html.includes('id="repeat-cards"'));
 
 console.log("Web UI smoke test passed");

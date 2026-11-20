@@ -49,6 +49,8 @@ public:
     bool deleteUser(std::uint32_t id);
     void clearUsers();
 
+    AuthMatch peekCard(const std::string& code) const;
+    void recordHit(std::uint32_t user_id);
     AuthMatch authorizeCard(const std::string& code);
     AuthMatch authorizePin(const std::string& pin);
 
@@ -69,6 +71,7 @@ public:
 
 private:
     std::uint32_t allocateId(std::uint32_t requested_id);
+    AuthMatch peekBy(const std::string& value, std::string UserEntry::* field) const;
     AuthMatch authorizeBy(const std::string& value, std::string UserEntry::* field);
 
     std::vector<UserEntry> users_;

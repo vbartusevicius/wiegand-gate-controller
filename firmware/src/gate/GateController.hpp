@@ -35,7 +35,8 @@ public:
     void tick(std::uint64_t now_ms);
 
     void executeCommand(GateCommand cmd, std::uint64_t now_ms);
-    void executeAccessTarget(access::RelayTarget target, std::uint64_t now_ms);
+    bool shouldSuppressOpenOnly(access::RelayTarget target) const;
+    void executeAccessTarget(access::RelayTarget target, std::uint64_t now_ms, bool open_only = false);
 
     void triggerGrantedFeedback(std::uint64_t now_ms) { feedback_.triggerGranted(now_ms); }
     void triggerDeniedFeedback(std::uint64_t now_ms) { feedback_.triggerDenied(now_ms); }

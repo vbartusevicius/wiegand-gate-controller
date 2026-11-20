@@ -28,6 +28,11 @@ enum class AntennaMode : std::uint8_t {
     External = 2,  // External U.FL antenna (GPIO14 = HIGH)
 };
 
+enum class CardActionMode : std::uint8_t {
+    Toggle = 0,    // Standard tap: open when closed, close/step when open
+    OpenOnly = 1,  // Long-range UHF / auto-close: never close/reverse on repeat scan
+};
+
 struct WifiConfig {
     std::string ssid;
     std::string password;
@@ -78,6 +83,8 @@ struct ReaderConfig {
     std::uint32_t granted_beep_ms{150};
     std::uint32_t granted_led_ms{2500};
     std::uint8_t denied_beeps{3};
+    CardActionMode card_action{CardActionMode::Toggle};
+    std::uint32_t card_cooldown_ms{0};
 };
 
 struct DeviceConfig {
@@ -163,6 +170,23 @@ inline AntennaMode parseAntennaMode(const std::string& s) {
         return AntennaMode::External;
     }
     return AntennaMode::Auto;
+}
+
+inline const char* toString(CardActionMode mode) {
+    switch (mode) {
+    case CardActionMode::Toggle:
+        return "toggle";
+    case CardActionMode::OpenOnly:
+        return "open_only";
+    }
+    return "toggle";
+}
+
+inline CardActionMode parseCardActionMode(const std::string& s) {
+    if (s == "open_only") {
+        return CardActionMode::OpenOnly;
+    }
+    return CardActionMode::Toggle;
 }
 
 inline bool selectExternalAntenna(AntennaMode mode, std::optional<int> ext_rssi,

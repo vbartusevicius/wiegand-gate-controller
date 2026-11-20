@@ -65,13 +65,28 @@ void GatewayApp::onWiegandEvent(const wiegand::WiegandEvent& ev, std::uint64_t n
     }
 
     const bool is_pin = (ev.kind == wiegand::WiegandEvent::Kind::Pin);
-    const access::AuthMatch match = is_pin ? store_.authorizePin(ev.code) : store_.authorizeCard(ev.code);
+    const access::AuthMatch match = is_pin ? store_.authorizePin(ev.code) : store_.peekCard(ev.code);
     const char* src_name = is_pin ? "keypad" : "wiegand";
     last_code_ = ev.code;
 
     if (match.granted) {
+        const bool open_only = !is_pin && cfg_.reader.card_action == CardActionMode::OpenOnly;
+        if (!is_pin) {
+            if (cfg_.reader.card_cooldown_ms > 0 && has_last_granted_card_ && ev.code == last_granted_card_ &&
+                now_ms >= last_granted_card_ms_ &&
+                (now_ms - last_granted_card_ms_) < cfg_.reader.card_cooldown_ms) {
+                return;
+            }
+            if (open_only && gate_.shouldSuppressOpenOnly(match.target)) {
+                return;
+            }
+            store_.recordHit(match.user_id);
+            has_last_granted_card_ = true;
+            last_granted_card_ = ev.code;
+            last_granted_card_ms_ = now_ms;
+        }
         last_user_ = match.user_name;
-        gate_.executeAccessTarget(match.target, now_ms);
+        gate_.executeAccessTarget(match.target, now_ms, open_only);
         gate_.triggerGrantedFeedback(now_ms);
         store_.addEvent({now_ms, "granted", src_name, match.user_name, ev.code});
         notifyAccess(true, src_name, match.user_name, ev.code, now_ms);
@@ -81,6 +96,14 @@ void GatewayApp::onWiegandEvent(const wiegand::WiegandEvent& ev, std::uint64_t n
 
     if (!is_pin) {
         store_.recordLastUnknown(ev.code, ev.bits, now_ms);
+        if (cfg_.reader.card_cooldown_ms > 0 && has_last_denied_card_ && ev.code == last_denied_card_ &&
+            now_ms >= last_denied_card_ms_ &&
+            (now_ms - last_denied_card_ms_) < cfg_.reader.card_cooldown_ms) {
+            return;
+        }
+        has_last_denied_card_ = true;
+        last_denied_card_ = ev.code;
+        last_denied_card_ms_ = now_ms;
     }
     gate_.triggerDeniedFeedback(now_ms);
     store_.addEvent({now_ms, "denied", src_name, "-", ev.code});

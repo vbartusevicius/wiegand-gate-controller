@@ -162,6 +162,14 @@
 
       <div class="card">
         <div class="card-head">
+          <h2>3. What happens on repeat or long-range (UHF) card scans?</h2>
+          <span class="muted">Tap how duplicate scans and already-open gates are handled</span>
+        </div>
+        <div class="scenario-grid three" id="repeat-cards"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
           <h2>Live Terminal Diagram</h2>
           <span class="muted">Updates automatically from your selections above</span>
         </div>
@@ -254,6 +262,18 @@
                   <option value="58">Strict 58-bit (Long-range UHF)</option>
                 </select>
               </label>
+              <div class="grid two">
+                <label>Card Scan Action
+                  <select id="c-card-action">
+                    <option value="toggle">Toggle (Open / Close)</option>
+                    <option value="open_only">Open Only (Never close)</option>
+                  </select>
+                </label>
+                <label>Duplicate Cooldown (ms)
+                  <input type="number" id="c-card-cooldown" min="0" max="300000" step="500" />
+                  <small class="hint">0 = instant · 15000 ms for UHF</small>
+                </label>
+              </div>
               <div class="grid two">
                 <label>Granted Beep (ms) <input type="number" id="c-wg-beep-ms" min="0" max="2000" /></label>
                 <label>Granted LED (ms) <input type="number" id="c-wg-led-ms" min="200" max="10000" /></label>

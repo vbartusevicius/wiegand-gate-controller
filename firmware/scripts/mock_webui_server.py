@@ -55,6 +55,8 @@ STATE = {
             "granted_beep_ms": 150,
             "granted_led_ms": 2500,
             "denied_beeps": 3,
+            "card_action": "toggle",
+            "card_cooldown_ms": 0,
         },
     },
     "gate_state": "closed",
