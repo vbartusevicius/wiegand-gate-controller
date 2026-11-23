@@ -12,13 +12,14 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        kicad=${KICAD_VERSION} kicad-footprints=${KICAD_VERSION} kicad-symbols=${KICAD_VERSION} \
        kicad-templates=${KICAD_VERSION} kicad-packages3d=${KICAD_VERSION} \
-       python3-pip python3-venv curl ca-certificates \
+       libngspice0 python3-pip python3-venv curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv --system-site-packages /opt/eda \
     && /opt/eda/bin/pip install --no-cache-dir \
        skidl==2.3.0 \
        kinet2pcb==1.1.4 \
+       ortools==9.15.6755 \
        pyyaml==6.0.3 \
        pytest==8.4.2 \
        pillow==11.3.0 \

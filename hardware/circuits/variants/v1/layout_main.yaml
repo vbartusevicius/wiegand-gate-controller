@@ -16,6 +16,7 @@ frame:
   isolators: []
   power_nets: [VIN_RAW, VIN_FUSED, VIN_PROT, +5V, +5V_XIAO, +12V_RDR, +12V_RDR_OUT, 5V_SW, 12V_SW, R1_COM, R1_NO, R1_NC, R2_COM, R2_NO, R2_NC]
   power_track_width: 0.35
+  power_clearance: 0.25
   signal_track_width: 0.2
   pours:
     - { net: GND, layers: [In1.Cu], region: { x0: 0.5, y0: 0.5, x1: 73.5, y1: 53.5 } }
@@ -68,146 +69,77 @@ heights:
   U9: 2.0
   U10: 2.0
 
-parts:
-  # Bottom terminal row (y = 7.5, WAGO 2086 SMD wire entries at y = -1.55) + Restart + 2x RGB LEDs on TOP
-  J1:  { x: 5.5,  y: 7.5,  rot: 0,   block: terminals_bottom, locked: true }
-  J2A: { x: 15.6, y: 7.5,  rot: 0,   block: terminals_bottom, locked: true }
-  J2B: { x: 27.2, y: 7.5,  rot: 0,   block: terminals_bottom, locked: true }
-  SW1: { x: 41.5, y: 6.2,  rot: 0,   block: mcu, locked: true }
-  D6:  { x: 52.0, y: 6.2,  rot: 0,   block: rgb_leds, locked: true }
-  D7:  { x: 64.0, y: 6.2,  rot: 0,   block: rgb_leds, locked: true }
+# Mechanical & enclosure-mated anchors only (all other 109 active/passive parts solved by 2-stage CP-SAT)
+anchors:
+  J1:  { x: 5.5,  y: 7.5,  rot: 0,   side: front }
+  J2A: { x: 15.6, y: 7.5,  rot: 0,   side: front }
+  J2B: { x: 27.2, y: 7.5,  rot: 0,   side: front }
+  SW1: { x: 41.5, y: 6.2,  rot: 0,   side: front }
+  D6:  { x: 52.0, y: 6.2,  rot: 180, side: front }
+  D7:  { x: 64.0, y: 6.2,  rot: 180, side: front }
+  J3A: { x: 7.2,  y: 46.5, rot: 180, side: front }
+  J3B: { x: 18.8, y: 46.5, rot: 180, side: front }
+  J4:  { x: 33.0, y: 46.5, rot: 180, side: front }
+  J5:  { x: 49.0, y: 46.5, rot: 180, side: front }
+  U3:  { x: 12.5, y: 27.0, rot: 90,  side: front }
 
-  # Top terminal row (y = 46.5, WAGO 2086 SMD wire entries at y = 55.55) on TOP
-  J3A: { x: 7.2,  y: 46.5, rot: 180, block: terminals_top, locked: true }
-  J3B: { x: 18.8, y: 46.5, rot: 180, block: terminals_top, locked: true }
-  J4:  { x: 33.0, y: 46.5, rot: 180, block: terminals_top, locked: true }
-  J5:  { x: 49.0, y: 46.5, rot: 180, block: terminals_top, locked: true }
+# 3D enclosure PCB support ledges, lid hold-down pins, button spring-tab pocket & XIAO RF antenna clearance
+keepouts:
+  - { name: base_ledge_bl, side: back,  x0: 0.0,  y0: 13.0, x1: 3.5,  y1: 17.0 }
+  - { name: base_ledge_tl, side: back,  x0: 0.0,  y0: 37.0, x1: 3.5,  y1: 41.0 }
+  - { name: base_ledge_br, side: back,  x0: 70.5, y0: 2.0,  x1: 74.0, y1: 6.0 }
+  - { name: base_ledge_mr, side: back,  x0: 70.5, y0: 24.0, x1: 74.0, y1: 28.0 }
+  - { name: lid_pin_tl,    side: front, x0: 0.0,  y0: 37.2, x1: 2.8,  y1: 40.2 }
+  - { name: lid_pin_br,    side: front, x0: 70.4, y0: 2.2,  x1: 74.0, y1: 5.8 }
+  - { name: ui_strip,      side: front, x0: 36.8, y0: 0.0,  x1: 68.5, y1: 8.9 }
+  - { name: xiao_ant,      side: front, x0: 21.5, y0: 21.0, x1: 23.7, y1: 33.0 }
 
-  # XIAO ESP32-C6 on left-center (USB-C facing -x) on TOP
-  U3:  { x: 12.5, y: 27.0, rot: 90,  block: mcu, locked: true }
-
-  # Relays on TOP (middle-left)
-  K1:  { x: 31.8, y: 32.3, rot: 90,  block: relays }
-  K2:  { x: 31.48, y: 20.3, rot: 90,  block: relays }
-
-  # Power protection + Dual TPS54360 bucks on TOP (right zone)
-  F1:  { x: 67.5, y: 47.92, rot: 90,  block: power_in }
-  D2:  { x: 67.5, y: 41.13, rot: 0,   block: power_in }
-  D1:  { x: 69.45, y: 37.19, rot: 0,   block: power_in }
-  C1:  { x: 68.68, y: 33.85, rot: 0,   block: power_in }
-
-  F2:  { x: 68.35, y: 13.27, rot: 0,   block: wiegand_pwr }
-  D8:  { x: 61.56, y: 13.63, rot: 90,  block: wiegand_pwr }
-  C8:  { x: 58.39, y: 11.06, rot: 90,  block: wiegand_pwr }
-
-  U1:  { x: 56.83, y: 20.32, rot: 0,   block: buck_5v }
-  L1:  { x: 46.18, y: 18.43, rot: 0,   block: buck_5v }
-  D3:  { x: 55.87, y: 14.95, rot: 0,   block: buck_5v }
-  C10: { x: 65.21, y: 18.89, rot: 90,  block: buck_5v }
-  C11: { x: 68.0, y: 18.94, rot: 90,  block: buck_5v }
-  C12: { x: 62.0, y: 21.95, rot: 90,  block: buck_5v }
-  C13: { x: 50.95, y: 15.0, rot: 90,  block: buck_5v }
-  C14: { x: 42.5, y: 13.59, rot: 0,   block: buck_5v }
-  C15: { x: 41.82, y: 23.99, rot: 0,   block: buck_5v }
-  C16: { x: 46.26, y: 24.16, rot: 0,   block: buck_5v }
-  C17: { x: 52.44, y: 24.5, rot: 0,   block: buck_5v }
-  C18: { x: 56.28, y: 24.33, rot: 0,   block: buck_5v }
-  R10: { x: 64.5, y: 23.25, rot: 90,  block: buck_5v }
-  R11: { x: 67.5, y: 23.36, rot: 90,  block: buck_5v }
-  R12: { x: 60.1, y: 25.05, rot: 0,   block: buck_5v }
-  R13: { x: 63.9, y: 26.27, rot: 0,   block: buck_5v }
-  R14: { x: 51.69, y: 21.4, rot: 90,  block: buck_5v }
-  R15: { x: 49.35, y: 23.8, rot: 90,  block: buck_5v }
-
-  U2:  { x: 59.43, y: 30.41, rot: 0,   block: buck_12v }
-  L2:  { x: 46.5, y: 31.57, rot: 0,   block: buck_12v }
-  D9:  { x: 56.38, y: 36.33, rot: 0,   block: buck_12v }
-  C20: { x: 65.4, y: 29.96, rot: 90,  block: buck_12v }
-  C21: { x: 68.14, y: 28.35, rot: 90,  block: buck_12v }
-  C22: { x: 61.3, y: 35.3, rot: 90,  block: buck_12v }
-  C23: { x: 51.46, y: 36.3, rot: 90,  block: buck_12v }
-  C24: { x: 42.5, y: 36.41, rot: 0,   block: buck_12v }
-  C25: { x: 42.88, y: 26.73, rot: 0,   block: buck_12v }
-  C26: { x: 47.32, y: 26.9, rot: 0,   block: buck_12v }
-  C27: { x: 51.5, y: 26.9, rot: 0,   block: buck_12v }
-  C28: { x: 56.28, y: 26.4, rot: 0,   block: buck_12v }
-  R20: { x: 64.57, y: 34.38, rot: 90,  block: buck_12v }
-  R21: { x: 61.5, y: 39.12, rot: 90,  block: buck_12v }
-  R22: { x: 59.5, y: 44.8, rot: 0,   block: buck_12v }
-  R23: { x: 59.5, y: 42.0, rot: 0,   block: buck_12v }
-  R24: { x: 48.6, y: 36.6, rot: 90,  block: buck_12v }
-  R25: { x: 45.9, y: 36.6, rot: 90,  block: buck_12v }
-
-  # BOTTOM side (B.Cu) — MCU support, VIN sense, RGB buffer, I2C expander, Wiegand I/O, Relay drivers, Optos
-  D5:  { x: 11.33, y: 38.1, rot: 0,   side: back, block: mcu_power }
-  C4:  { x: 16.5, y: 16.68, rot: 0,   side: back, block: mcu_power }
-  C3:  { x: 16.97, y: 37.33, rot: 0,   side: back, block: mcu_power }
-  R5:  { x: 7.0,  y: 16.71, rot: 0,   side: back, block: mcu }
-  R6:  { x: 5.71,  y: 37.3, rot: 0,   side: back, block: mcu }
-  R7:  { x: 11.5, y: 16.71, rot: 0,   side: back, block: mcu }
-  R1:  { x: 15.5, y: 14.31, rot: 0,   side: back, block: vin_sense }
-  R2:  { x: 19.5, y: 14.3, rot: 0,   side: back, block: vin_sense }
-  C2:  { x: 11.5, y: 14.33, rot: 0,   side: back, block: vin_sense }
-
-  R3:  { x: 41.5, y: 8.5,  rot: 0,   side: back, block: mcu }
-  C5:  { x: 41.5, y: 5.0,  rot: 0,   side: back, block: mcu }
-  U5:  { x: 46.87, y: 6.5,  rot: 0,   side: back, block: rgb_leds }
-  C9:  { x: 51.09, y: 4.5,  rot: 0,   side: back, block: rgb_leds }
-  R16: { x: 51.04, y: 8.5,  rot: 0,   side: back, block: rgb_leds }
-  C19: { x: 56.0, y: 6.5,  rot: 90,  side: back, block: rgb_leds }
-  C29: { x: 64.0, y: 6.5,  rot: 90,  side: back, block: rgb_leds }
-
-  U4:  { x: 31.15, y: 19.5, rot: 0,   side: back, block: expander }
-  C6:  { x: 24.42, y: 18.0, rot: 90,  side: back, block: expander }
-  R4:  { x: 24.4, y: 22.0, rot: 90,  side: back, block: expander }
-
-  U6:  { x: 42.0, y: 17.5, rot: 0,   side: back, block: wiegand_data }
-  C30: { x: 42.89, y: 14.0, rot: 0,   side: back, block: wiegand_data }
-  D10: { x: 38.82, y: 13.5, rot: 0,   side: back, block: wiegand_data }
-  D11: { x: 46.96, y: 13.5, rot: 0,   side: back, block: wiegand_data }
-  R30: { x: 38.0, y: 21.5, rot: 90,  side: back, block: wiegand_data }
-  R31: { x: 40.5, y: 21.5, rot: 90,  side: back, block: wiegand_data }
-  R32: { x: 43.0, y: 21.5, rot: 90,  side: back, block: wiegand_data }
-  R33: { x: 45.5, y: 21.5, rot: 90,  side: back, block: wiegand_data }
-
-  Q3:  { x: 51.26, y: 14.0, rot: 0,   side: back, block: wiegand_fb }
-  D12: { x: 50.46, y: 18.0, rot: 0,   side: back, block: wiegand_fb }
-  R34: { x: 54.58, y: 14.0, rot: 90,  side: back, block: wiegand_fb }
-  R35: { x: 56.92, y: 14.0, rot: 90,  side: back, block: wiegand_fb }
-  R36: { x: 59.26, y: 14.0, rot: 90,  side: back, block: wiegand_fb }
-
-  Q4:  { x: 63.0, y: 14.0, rot: 0,   side: back, block: wiegand_fb }
-  D13: { x: 63.0, y: 18.0, rot: 0,   side: back, block: wiegand_fb }
-  R37: { x: 66.5, y: 14.0, rot: 90,  side: back, block: wiegand_fb }
-  R38: { x: 69.0, y: 14.0, rot: 90,  side: back, block: wiegand_fb }
-  R39: { x: 71.5, y: 14.0, rot: 90,  side: back, block: wiegand_fb }
-
-  Q1:  { x: 26.5, y: 31.0, rot: 0,   side: back, block: relays }
-  D14: { x: 33.0, y: 31.0, rot: 0,   side: back, block: relays }
-  R40: { x: 26.0, y: 35.5, rot: 0,   side: back, block: relays }
-  R41: { x: 30.0, y: 35.5, rot: 0,   side: back, block: relays }
-  Q2:  { x: 26.5, y: 39.5, rot: 0,   side: back, block: relays }
-  D15: { x: 33.0, y: 39.5, rot: 0,   side: back, block: relays }
-  R42: { x: 37.5, y: 35.5, rot: 90,  side: back, block: relays }
-  R43: { x: 40.0, y: 35.5, rot: 90,  side: back, block: relays }
-
-  U8:  { x: 46.5, y: 38.0, rot: 0,   side: back, block: opto_inputs }
-  D16: { x: 46.5, y: 33.5, rot: 0,   side: back, block: opto_inputs }
-  R44: { x: 40.19, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-  R45: { x: 42.53, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-  R46: { x: 44.87, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-  C31: { x: 47.24, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-
-  U9:  { x: 56.5, y: 39.16, rot: 0,   side: back, block: opto_inputs }
-  D17: { x: 56.5, y: 35.03, rot: 0,   side: back, block: opto_inputs }
-  R47: { x: 49.61, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-  R48: { x: 51.95, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-  R49: { x: 54.29, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-  C32: { x: 65.23, y: 29.0, rot: 90,  side: back, block: opto_inputs }
-
-  U10: { x: 67.0, y: 45.5, rot: 0,   side: back, block: opto_inputs }
-  D18: { x: 67.0, y: 40.5, rot: 0,   side: back, block: opto_inputs }
-  R50: { x: 64.0, y: 36.0, rot: 90,  side: back, block: opto_inputs }
-  R51: { x: 66.5, y: 36.0, rot: 90,  side: back, block: opto_inputs }
-  R52: { x: 69.0, y: 36.0, rot: 90,  side: back, block: opto_inputs }
-  C33: { x: 71.5, y: 36.0, rot: 90,  side: back, block: opto_inputs }
+placement:
+  seed: 42
+  edge_margin: 0.75
+  front_max_height: 18.5
+  back_max_height: 2.5
+  stage1_time_s: 35.0
+  stage2_time_s: 22.0
+  front_refs: [K1, K2]
+  front_blocks: [power_in, wiegand_pwr, buck_5v, buck_12v]
+  allowed_rotations:
+    K1: [90, 270]
+    K2: [90, 270]
+  ref_regions:
+    K1: { x0: 23.8, x1: 42.0 }
+    K2: { x0: 23.8, x1: 42.0 }
+    U1: { x0: 43.0, x1: 66.5, y0: 12.5, y1: 30.0 }
+    U2: { x0: 43.0, x1: 66.5, y0: 26.5, y1: 46.0 }
+  block_regions:
+    power_in:    { x0: 38.5 }
+    wiegand_pwr: { x0: 38.5 }
+    buck_5v:     { x0: 38.5 }
+    buck_12v:    { x0: 38.5 }
+  decoupling_parents:
+    C1: D1
+    C8: D8
+    C10: U1
+    C11: U1
+    C12: U1
+    C14: L1
+    C15: L1
+    C16: L1
+    C20: U2
+    C21: U2
+    C22: U2
+    C24: L2
+    C25: L2
+    C26: L2
+    C3: U3
+    C4: U3
+    C6: U4
+    C9: U5
+    C19: D6
+    C29: D7
+    C30: U6
+  passive_batches:
+    - { name: front_power, blocks: [power_in, wiegand_pwr, buck_5v, buck_12v] }
+    - { name: mcu_rgb_exp, blocks: [mcu, mcu_power, vin_sense, rgb_leds, expander] }
+    - { name: wiegand,     blocks: [wiegand_data, wiegand_fb] }
+    - { name: gate_io,     blocks: [relays, opto_inputs] }

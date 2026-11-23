@@ -9,6 +9,8 @@ from pathlib import Path
 
 import kinet2pcb
 import pcbnew
+import placer
+import track_pruner
 import yaml
 from shapely.geometry import Polygon
 
@@ -204,8 +206,11 @@ def carry_over(target, stored):
     return moved, copied
 
 
-def place_parts(board, plan, names):
-    parts = plan["parts"]
+def place_parts(board, plan, names, board_name="main"):
+    if "placement" in plan and not names:
+        placer.place_board(board, plan, build_dir(board_name) / "parts.json")
+        return [fp.GetReference() for fp in board.Footprints()]
+    parts = plan.get("parts") or plan.get("anchors", {})
     refs = list(parts) if not names else [r for r, p in parts.items() if r in names or p.get("block") in names]
     for ref in refs:
         p = parts[ref]
@@ -215,7 +220,7 @@ def place_parts(board, plan, names):
         set_side(fp, p.get("side") == "back")
         fp.SetOrientationDegrees(p.get("rot", 0))
         fp.SetPosition(pos(p["x"], p["y"]))
-        fp.SetLocked(bool(p.get("locked", False)))
+        fp.SetLocked(bool(p.get("locked", ref in plan.get("anchors", {}))))
     return refs
 
 
@@ -334,10 +339,10 @@ def net_classes(board, frame):
     return classes
 
 
-def project_net_settings(classes, power_width=0.35, signal_width=0.2, via=(0.6, 0.3)):
-    def netclass(name, priority, width):
+def project_net_settings(classes, power_width=0.35, signal_width=0.2, via=(0.6, 0.3), power_clearance=0.25):
+    def netclass(name, priority, width, clearance=0.2):
         return {
-            "name": name, "priority": priority, "clearance": 0.2, "track_width": width,
+            "name": name, "priority": priority, "clearance": clearance, "track_width": width,
             "via_diameter": via[0], "via_drill": via[1], "microvia_diameter": 0.3,
             "microvia_drill": 0.1, "diff_pair_gap": 0.25, "diff_pair_via_gap": 0.25,
             "diff_pair_width": 0.2, "wire_width": 6, "bus_width": 12, "line_style": 0,
@@ -345,7 +350,7 @@ def project_net_settings(classes, power_width=0.35, signal_width=0.2, via=(0.6, 
         }
     defs = [netclass("Default", 2147483647, signal_width)]
     defs += [netclass(d, 2, signal_width) for d in POWER_CLASS]
-    defs += [netclass(p, 1, power_width) for p in POWER_CLASS.values()]
+    defs += [netclass(p, 1, power_width, power_clearance) for p in POWER_CLASS.values()]
     patterns = [{"netclass": c, "pattern": n} for n, c in sorted(classes.items())]
     return defs, patterns
 
@@ -362,6 +367,7 @@ def write_rules(board, plan, pcb_path):
         frame.get("power_track_width", 0.35),
         frame.get("signal_track_width", 0.2),
         (via.get("diameter", 0.6), via.get("drill", 0.3)),
+        frame.get("power_clearance", 0.25),
     )
     project.setdefault("net_settings", {}).update({"classes": defs, "netclass_patterns": patterns})
     pro_path.write_text(json.dumps(project, indent=2))
@@ -477,11 +483,11 @@ def current_board(board_name, plan):
         moved, copied = carry_over(board, old)
         new_refs = [fp.GetReference() for fp in board.Footprints() if old.FindFootprintByReference(fp.GetReference()) is None]
         if new_refs:
-            place_parts(board, plan, new_refs)
+            place_parts(board, plan, new_refs, board_name)
         print(f"{board_name}: kept {moved} footprints, {copied} tracks/vias, placed new {new_refs or 'none'}")
     else:
-        placed = place_parts(board, plan, list(plan["parts"]))
-        print(f"{board_name}: new layout, placed {len(placed)} planned parts")
+        placed = place_parts(board, plan, [], board_name)
+        print(f"{board_name}: new 2-stage CP-SAT layout, placed {len(placed)} parts")
     apply_frame(board, plan)
     return board
 
@@ -517,7 +523,14 @@ def with_inset_boundary(dsn_text, frame):
     return re.sub(r"(\(boundary\s+\(path pcb 0\s+)([-\d.\s]+)\)", rewrite, dsn_text, count=1)
 
 
-def with_net_classes(dsn_text, nets, net_settings):
+def with_net_classes(dsn_text, nets, net_settings, base_clearance_mm=0.2):
+    base_clr_um = round((base_clearance_mm + 0.003) * 1000)
+    dsn_text = re.sub(
+        r"(\(structure\b[\s\S]*?\(rule\s+\(width\s+\d+\)\s+\(clearance\s+)\d+(\))",
+        rf"\g<1>{base_clr_um}\2",
+        dsn_text,
+        count=1,
+    )
     start = dsn_text.index("    (class ")
     end = dsn_text.index("  (wiring")
     via = dsn_text[start:end].split("(use_via ")[1].split(")")[0]
@@ -528,11 +541,19 @@ def with_net_classes(dsn_text, nets, net_settings):
         groups.setdefault(assigned.get(net, "Default"), []).append(net)
     blocks = []
     for cls, members in sorted(groups.items()):
+        cls_clr_um = round((classes[cls]["clearance"] + 0.003) * 1000)
+        pad_escape = ""
+        if cls_clr_um > base_clr_um:
+            pad_escape = (
+                f"        (clearance {base_clr_um} (type wire_smd))\n"
+                f"        (clearance {base_clr_um} (type smd_smd))\n"
+            )
         blocks.append(
             f'    (class {cls} {" ".join(members)}\n'
             f'      (circuit\n        (use_via {via})\n      )\n'
             f'      (rule\n        (width {classes[cls]["track_width"] * 1000:.0f})\n'
-            f'        (clearance {(classes[cls]["clearance"] + 0.01) * 1000:.0f})\n'
+            f'        (clearance {cls_clr_um})\n'
+            f'{pad_escape}'
             f'      )\n    )\n'
         )
     return dsn_text[:start] + "".join(blocks) + "  )\n" + dsn_text[end:]
@@ -541,8 +562,9 @@ def with_net_classes(dsn_text, nets, net_settings):
 def export_dsn(board_name):
     plan = load_plan(board_name)
     board = current_board(board_name, plan)
+    plane_ids = {LAYERS[lyr] for lyr in plan["frame"].get("plane_layers", [])}
     for zone in zones(board):
-        if not zone.GetIsRuleArea():
+        if not zone.GetIsRuleArea() and zone.GetLayer() not in plane_ids:
             board.RemoveNative(zone)
     for track in list(board.GetTracks()):
         if not track.IsLocked():
@@ -627,6 +649,12 @@ def import_ses(board_name):
     ses = build_dir(board_name) / f"{board_name}.ses"
     if not pcbnew.ImportSpecctraSES(board, str(ses)):
         sys.exit("SES import failed")
+    pstats = track_pruner.prune_board_tracks(board)
+    print(
+        f"{board_name}: planar pruner tracks {pstats['tracks_before']}->{pstats['tracks_after']}, "
+        f"vias {pstats['vias_before']}->{pstats['vias_after']} "
+        f"(cycles={pstats['cycles_broken']}, stubs={pstats['stubs_pruned']})"
+    )
     save(board, plan, board_name)
     widened = widen_narrow_tracks(board_name)
     if widened:
@@ -643,6 +671,7 @@ def route(board_name, time_limit=300, attempts=3):
         ses.unlink(missing_ok=True)
         run = subprocess.run(
             ["fastroute", "-de", str(dsn), "-do", str(ses), f"--max-time={time_limit}",
+             "--router.fanout.enabled=false",
              f"--router.min_trace_width_um={MIN_TRACK_UM}", f"--report={report}", "--diagnose"],
             capture_output=True, text=True, check=False,
         )
@@ -671,8 +700,9 @@ if __name__ == "__main__":
         route(name, *(int(a) for a in args))
     elif command == "place":
         plan = load_plan(name)
-        b = current_board(name, plan)
-        place_parts(b, plan, args)
+        b = fresh_board(name)
+        place_parts(b, plan, args, name)
+        apply_frame(b, plan)
         save(b, plan, name)
     elif command == "unroute":
         plan = load_plan(name)

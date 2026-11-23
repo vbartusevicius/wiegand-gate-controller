@@ -15,13 +15,13 @@ RAILS = {
     5.0: {
         "l": ("8.2uH", "ANR6045T8R2M", "C7427168", "APV", "Isat 3.96 A, Irms 2.64 A"),
         "cout": "47u 10V",
-        "c5": ("33n 50V", "f_z = 742 Hz"),
+        "c5": ("33n 50V", "f_z = 90 Hz"),
         "fb": ("53k6", "10k2"),
     },
     12.0: {
         "l": ("22uH", "SRN6045TA-220M", "C2044314", "Bourns", "Isat 3.3 A, Irms 2.3 A"),
         "cout": "22u 25V",
-        "c5": ("18n 50V", "f_z = 1.36 kHz"),
+        "c5": ("18n 50V", "f_z = 165 Hz"),
         "fb": ("140k", "10k"),
     },
 }
@@ -113,7 +113,7 @@ def tps54360(name, vin, vout, gnd, u, l_ref, d_ref, c_refs, r_refs, volts):
         (fb_top, vout, fb, f"TPS54360 FB top ({volts:g} V)"),
         (fb_bot, fb, gnd, "TPS54360 FB bottom"),
         ("130k", rt, gnd, "TPS54360 RT (743 kHz)"),
-        ("6k49", comp, cc, "TPS54360 R4 compensation"),
+        ("53k6", comp, cc, "TPS54360 R4 compensation"),
     )
     for ref, (val, a, b, source_txt) in zip(r_refs, ress):
         r = res(val, f"{source_txt} [{name}]", ref)
