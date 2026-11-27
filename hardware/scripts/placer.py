@@ -275,6 +275,294 @@ def fixed_pad_coords(board: pcbnew.BOARD, placed_refs: set[str]) -> dict[str, li
     return by_net
 
 
+def _orient2d(ax: float, ay: float, bx: float, by: float, cx: float, cy: float) -> float:
+    return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+
+
+def _segments_cross(
+    a: tuple[float, float], b: tuple[float, float], c: tuple[float, float], d: tuple[float, float]
+) -> bool:
+    ax, ay = a
+    bx, by = b
+    cx, cy = c
+    dx, dy = d
+    if max(ax, bx) < min(cx, dx) - 1e-6 or max(cx, dx) < min(ax, bx) - 1e-6:
+        return False
+    if max(ay, by) < min(cy, dy) - 1e-6 or max(cy, dy) < min(ay, by) - 1e-6:
+        return False
+    o1 = _orient2d(ax, ay, bx, by, cx, cy)
+    o2 = _orient2d(ax, ay, bx, by, dx, dy)
+    o3 = _orient2d(cx, cy, dx, dy, ax, ay)
+    o4 = _orient2d(cx, cy, dx, dy, bx, by)
+    if (o1 > 1e-9 and o2 < -1e-9 or o1 < -1e-9 and o2 > 1e-9) and (
+        o3 > 1e-9 and o4 < -1e-9 or o3 < -1e-9 and o4 > 1e-9
+    ):
+        return True
+    # Collinear opposite overlap (e.g. cap flipped 180 deg directly in-line with pins)
+    if abs(o1) < 1e-6 and abs(o2) < 1e-6:
+        dot_ab_cd = (bx - ax) * (dx - cx) + (by - ay) * (dy - cy)
+        if dot_ab_cd < -1e-6:
+            return True
+    return False
+
+
+def _is_symmetric_two_pin_passive(fp: pcbnew.FOOTPRINT) -> bool:
+    if fp.IsLocked():
+        return False
+    ref = fp.GetReference()
+    if not (ref.startswith(("R", "C", "L", "FB")) and not ref.startswith("CP")):
+        return False
+    fp_name = str(fp.GetFPID().GetLibItemName())
+    val = fp.GetValue()
+    for polar_tok in ("CP_", "Polarized", "Tantalum", "Electrolytic"):
+        if polar_tok.lower() in fp_name.lower() or polar_tok.lower() in val.lower():
+            return False
+    pads = [p for p in fp.Pads() if p.GetNumber()]
+    if len(pads) != 2:
+        return False
+    n1, n2 = pads[0].GetNetname(), pads[1].GetNetname()
+    if not n1 or not n2 or n1 == n2:
+        return False
+    side = "back" if fp.IsFlipped() else "front"
+    geoms = measure_footprint(fp, side, (0, 180))
+    g0, g180 = geoms[0], geoms[180]
+    return (
+        abs(g0.dx0 - g180.dx0) < 0.05
+        and abs(g0.dx1 - g180.dx1) < 0.05
+        and abs(g0.dy0 - g180.dy0) < 0.05
+        and abs(g0.dy1 - g180.dy1) < 0.05
+    )
+
+
+def _find_shared_parent_pins(
+    board: pcbnew.BOARD,
+    ref: str,
+    n1: str,
+    n2: str,
+    candidate_refs: set[str],
+    *,
+    preferred_refs: list[str] | None = None,
+    ref_xy: tuple[float, float] | None = None,
+) -> tuple[str, tuple[float, float], tuple[float, float]] | None:
+    """Find an already-placed parent footprint carrying both n1 and n2, returning (parent_ref, t1, t2) in mm."""
+    pref_rank = {r: idx for idx, r in enumerate(preferred_refs or ())}
+    best: tuple[tuple[int, float], str, tuple[float, float], tuple[float, float]] | None = None
+
+    for tref in sorted(candidate_refs):
+        if tref == ref:
+            continue
+        tfp = board.FindFootprintByReference(tref)
+        if tfp is None:
+            continue
+        pts1, pts2 = [], []
+        for pad in tfp.Pads():
+            pnet = pad.GetNetname()
+            if pnet == n1:
+                p = pad.GetPosition()
+                pts1.append((pcbnew.ToMM(p.x), -pcbnew.ToMM(p.y)))
+            elif pnet == n2:
+                p = pad.GetPosition()
+                pts2.append((pcbnew.ToMM(p.x), -pcbnew.ToMM(p.y)))
+        if not pts1 or not pts2:
+            continue
+        # Best pair of pins on this shared parent (closest to each other, and to ref_xy if provided)
+        pair_best = min(
+            (
+                (
+                    math.hypot(a[0] - b[0], a[1] - b[1])
+                    + (
+                        0.5 * (math.hypot(a[0] - ref_xy[0], a[1] - ref_xy[1]) + math.hypot(b[0] - ref_xy[0], b[1] - ref_xy[1]))
+                        if ref_xy is not None
+                        else 0.0
+                    ),
+                    a,
+                    b,
+                )
+                for a in pts1
+                for b in pts2
+            ),
+            key=lambda item: item[0],
+        )
+        if tref in pref_rank:
+            tier = pref_rank[tref]
+        elif not is_passive(tref):
+            tier = 100
+        else:
+            tier = 200
+        rank = (tier, pair_best[0])
+        if best is None or rank < best[0]:
+            best = (rank, tref, pair_best[1], pair_best[2])
+    if best is None:
+        return None
+    return best[1], best[2], best[3]
+
+
+def _fp_board_bbox(fp: pcbnew.FOOTPRINT, cx: float, cy: float, side: str, rot: int) -> tuple[float, float, float, float]:
+    gm = measure_footprint(fp, side, (rot,))[rot]
+    return cx + gm.dx0, cy + gm.dy0, cx + gm.dx1, cy + gm.dy1
+
+
+def _boxes_overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float], pad: float = 0.0) -> bool:
+    return a[0] < b[2] + pad and b[0] < a[2] + pad and a[1] < b[3] + pad and b[1] < a[3] + pad
+
+
+def uncross_and_align_passives(
+    board: pcbnew.BOARD,
+    plan: dict | None = None,
+    *,
+    parts_meta: dict | None = None,
+) -> dict[str, int]:
+    """Post-placement 180 deg uncrossing & adjacent pin-pair midpoint alignment for symmetric 2-pin passives."""
+    cross_penalty = 5.0
+    all_refs = {fp.GetReference() for fp in board.Footprints()}
+    explicit_parents: dict[str, str] = (plan or {}).get("placement", {}).get("decoupling_parents", {})
+    edge_margin = float((plan or {}).get("placement", {}).get("edge_margin", 0.7))
+    w_mm = float((plan or {}).get("frame", {}).get("size", {}).get("x", 0.0))
+    h_mm = float((plan or {}).get("frame", {}).get("size", {}).get("y", 0.0))
+    if w_mm <= 0 or h_mm <= 0:
+        ebb = board.GetBoardEdgesBoundingBox()
+        w_mm = pcbnew.ToMM(ebb.GetWidth()) or 200.0
+        h_mm = pcbnew.ToMM(ebb.GetHeight()) or 200.0
+
+    # Static keepout & cross-face THT/thermal-via boxes for clash-free midpoint alignment
+    static_obs: dict[str, list[tuple[float, float, float, float]]] = {"front": [], "back": []}
+    for k in (plan or {}).get("keepouts", []):
+        r = (float(k["x0"]), float(k["y0"]), float(k["x1"]), float(k["y1"]))
+        if k["side"] in ("front", "both"):
+            static_obs["front"].append(r)
+        if k["side"] in ("back", "both"):
+            static_obs["back"].append(r)
+    for lbl in (plan or {}).get("frame", {}).get("silk_labels", []):
+        if lbl.get("layer", "F.SilkS") == "F.SilkS":
+            hw = max(0.7, 0.32 * len(str(lbl["text"])))
+            static_obs["front"].append((lbl["x"] - hw, lbl["y"] - 0.45, lbl["x"] + hw, lbl["y"] + 0.45))
+
+    # Cross-face THT / thermal-via shadows
+    for fp in board.Footprints():
+        ref = fp.GetReference()
+        side = "back" if fp.IsFlipped() else "front"
+        rot = round(fp.GetOrientationDegrees()) % 360
+        cx, cy = pcbnew.ToMM(fp.GetPosition().x), -pcbnew.ToMM(fp.GetPosition().y)
+        opp = "back" if side == "front" else "front"
+        if ref == "U3":
+            for row_pads in (range(1, 8), range(8, 15)):
+                pts = []
+                for pnum in row_pads:
+                    pad = fp.FindPadByNumber(str(pnum))
+                    if pad is None:
+                        continue
+                    pbb = pad.GetBoundingBox()
+                    pts.append((pcbnew.ToMM(pbb.GetLeft()), -pcbnew.ToMM(pbb.GetBottom()), pcbnew.ToMM(pbb.GetRight()), -pcbnew.ToMM(pbb.GetTop())))
+                if pts:
+                    static_obs[opp].append((min(b[0] for b in pts) - 0.45, min(b[1] for b in pts) - 0.45, max(b[2] for b in pts) + 0.45, max(b[3] for b in pts) + 0.45))
+        else:
+            gm = measure_footprint(fp, side, (rot,))[rot]
+            if gm.drill_box is not None:
+                dx0, dy0, dx1, dy1 = gm.drill_box
+                static_obs[opp].append((cx + dx0 - 0.5, cy + dy0 - 0.5, cx + dx1 + 0.5, cy + dy1 + 0.5))
+
+    def score_pads(p1: tuple[float, float], p2: tuple[float, float], t1: tuple[float, float], t2: tuple[float, float]) -> float:
+        d = math.hypot(p1[0] - t1[0], p1[1] - t1[1]) + math.hypot(p2[0] - t2[0], p2[1] - t2[1])
+        return d + (cross_penalty if _segments_cross(p1, t1, p2, t2) else 0.0)
+
+    def nearest_other_pad(ref: str, net: str, origin: tuple[float, float]) -> tuple[float, float] | None:
+        best_d = 1e18
+        best_pt = None
+        for ofp in board.Footprints():
+            if ofp.GetReference() == ref:
+                continue
+            for pad in ofp.Pads():
+                if pad.GetNetname() == net:
+                    p = pad.GetPosition()
+                    pt = (pcbnew.ToMM(p.x), -pcbnew.ToMM(p.y))
+                    d = math.hypot(pt[0] - origin[0], pt[1] - origin[1])
+                    if d < best_d:
+                        best_d = d
+                        best_pt = pt
+        return best_pt
+
+    flips = 0
+    aligned = 0
+    for fp in sorted(board.Footprints(), key=lambda f: f.GetReference()):
+        if not _is_symmetric_two_pin_passive(fp):
+            continue
+        ref = fp.GetReference()
+        side = "back" if fp.IsFlipped() else "front"
+        rot = round(fp.GetOrientationDegrees()) % 360
+        cx, cy = pcbnew.ToMM(fp.GetPosition().x), -pcbnew.ToMM(fp.GetPosition().y)
+        pads = sorted((p for p in fp.Pads() if p.GetNumber()), key=lambda p: p.GetNumber())
+        n1, n2 = pads[0].GetNetname(), pads[1].GetNetname()
+        p1 = (pcbnew.ToMM(pads[0].GetPosition().x), -pcbnew.ToMM(pads[0].GetPosition().y))
+        p2 = (pcbnew.ToMM(pads[1].GetPosition().x), -pcbnew.ToMM(pads[1].GetPosition().y))
+
+        pref = [explicit_parents[ref]] if ref in explicit_parents else []
+        shared = _find_shared_parent_pins(board, ref, n1, n2, all_refs, preferred_refs=pref, ref_xy=(cx, cy))
+        if shared is not None:
+            _, t1, t2 = shared
+        else:
+            t1 = nearest_other_pad(ref, n1, (cx, cy))
+            t2 = nearest_other_pad(ref, n2, (cx, cy))
+            if t1 is None or t2 is None:
+                continue
+
+        # 1. Zero-courtyard 180 deg uncrossing
+        rot_180 = (rot + 180) % 360
+        geoms_180 = measure_footprint(fp, side, (rot_180,))[rot_180]
+        p1_off = next((x, y) for x, y, n in geoms_180.pads[n1] if n == pads[0].GetNumber())
+        p2_off = next((x, y) for x, y, n in geoms_180.pads[n2] if n == pads[1].GetNumber())
+        p1_180 = (cx + p1_off[0], cy + p1_off[1])
+        p2_180 = (cx + p2_off[0], cy + p2_off[1])
+
+        sc_cur = score_pads(p1, p2, t1, t2)
+        sc_180 = score_pads(p1_180, p2_180, t1, t2)
+        if sc_180 < sc_cur - 1e-4:
+            fp.SetOrientationDegrees(rot_180)
+            rot = rot_180
+            p1, p2 = p1_180, p2_180
+            sc_cur = sc_180
+            flips += 1
+
+        # 2. Adjacent pin-pair midpoint alignment (<= 4.0 mm apart on shared parent, clash-free)
+        if shared is not None:
+            pin_span = math.hypot(t2[0] - t1[0], t2[1] - t1[1])
+            mid = (0.5 * (t1[0] + t2[0]), 0.5 * (t1[1] + t2[1]))
+            if 0.2 <= pin_span <= 4.0 and math.hypot(cx - mid[0], cy - mid[1]) <= 6.0:
+                ux, uy = (t2[0] - t1[0]) / pin_span, (t2[1] - t1[1]) / pin_span
+                pvx, pvy = p2[0] - p1[0], p2[1] - p1[1]
+                plen = math.hypot(pvx, pvy)
+                if plen > 0.1 and abs((pvx * ux + pvy * uy) / plen) > 0.9:
+                    proj = (mid[0] - cx) * ux + (mid[1] - cy) * uy
+                    nx = round((cx + proj * ux) / GRID_MM) * GRID_MM
+                    ny = round((cy + proj * uy) / GRID_MM) * GRID_MM
+                    if math.hypot(nx - cx, ny - cy) >= GRID_MM:
+                        cand_box = _fp_board_bbox(fp, nx, ny, side, rot)
+                        in_bounds = (
+                            cand_box[0] >= edge_margin
+                            and cand_box[1] >= edge_margin
+                            and cand_box[2] <= w_mm - edge_margin
+                            and cand_box[3] <= h_mm - edge_margin
+                        )
+                        if in_bounds and not any(_boxes_overlap(cand_box, ob, 0.0) for ob in static_obs[side]):
+                            clash = False
+                            for ofp in board.Footprints():
+                                if ofp.GetReference() == ref or ("back" if ofp.IsFlipped() else "front") != side:
+                                    continue
+                                ocx, ocy = pcbnew.ToMM(ofp.GetPosition().x), -pcbnew.ToMM(ofp.GetPosition().y)
+                                orot = round(ofp.GetOrientationDegrees()) % 360
+                                obox = _fp_board_bbox(ofp, ocx, ocy, side, orot)
+                                if _boxes_overlap(cand_box, obox, 0.25):
+                                    clash = True
+                                    break
+                            if not clash:
+                                dx_s, dy_s = nx - cx, ny - cy
+                                sc_new = score_pads((p1[0] + dx_s, p1[1] + dy_s), (p2[0] + dx_s, p2[1] + dy_s), t1, t2)
+                                if sc_new <= sc_cur + 1e-4:
+                                    fp.SetPosition(pcbnew.VECTOR2I(pcbnew.FromMM(nx), pcbnew.FromMM(-ny)))
+                                    aligned += 1
+
+    return {"flips": flips, "aligned": aligned}
+
+
 def solve_cp_sat(model: cp_model.CpModel, time_limit_s: float, seed: int, label: str) -> cp_model.CpSolver:
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = float(time_limit_s)
@@ -633,7 +921,32 @@ def place_board(board: pcbnew.BOARD, plan: dict, parts_meta_path: Path) -> None:
         for ref in b_refs:
             blk = parts_meta[ref]["place"]
             _, _, _, _, pad_map = p_vars[ref]
-            for (pnum, net), (px, py) in pad_map.items():
+            pad_items = sorted(pad_map.items(), key=lambda kv: kv[0][0])
+
+            # Shared-parent pin attraction: if a 2-pin passive bridges two nets that both exist on one
+            # already-placed parent footprint (e.g. IC VCC + local GND, or BOOT + SW), pull each passive
+            # pad directly to its matching pin on that parent instead of global HPWL / global ground centroid.
+            shared_anchored: set[str] = set()
+            if len(pad_items) == 2:
+                (pnum1, net1), (px1, py1) = pad_items[0]
+                (pnum2, net2), (px2, py2) = pad_items[1]
+                pref = [explicit_parents[ref]] if ref in explicit_parents else []
+                pref += [r for r in block_parents.get(blk, []) if r not in pref]
+                shared = _find_shared_parent_pins(board, ref, net1, net2, placed_refs, preferred_refs=pref)
+                if shared is not None:
+                    _, (t1x_mm, t1y_mm), (t2x_mm, t2y_mm) = shared
+                    for pnum_k, (px_k, py_k), (tx_mm, ty_mm) in (
+                        (pnum1, (px1, py1), (t1x_mm, t1y_mm)),
+                        (pnum2, (px2, py2), (t2x_mm, t2y_mm)),
+                    ):
+                        adx = m2.NewIntVar(0, gw, f"sp_dx_{ref}_{pnum_k}")
+                        ady = m2.NewIntVar(0, gh, f"sp_dy_{ref}_{pnum_k}")
+                        m2.AddAbsEquality(adx, px_k - g_near(tx_mm))
+                        m2.AddAbsEquality(ady, py_k - g_near(ty_mm))
+                        obj2.append(22 * (adx + ady))
+                    shared_anchored.update((pnum1, pnum2))
+
+            for (pnum, net), (px, py) in pad_items:
                 if net.endswith("_CC"):
                     tag = net.split("_")[0]
                     if tag in comp_pin_by_tag:
@@ -643,7 +956,7 @@ def place_board(board: pcbnew.BOARD, plan: dict, parts_meta_path: Path) -> None:
                         m2.AddAbsEquality(adx, px - tx)
                         m2.AddAbsEquality(ady, py - ty)
                         obj2.append(18 * (adx + ady))
-                if net == "GND":
+                if pnum in shared_anchored or net == "GND":
                     continue
                 if net in GLOBAL_RAILS:
                     target_refs = [explicit_parents[ref]] if ref in explicit_parents else block_parents.get(blk, [])
@@ -704,3 +1017,7 @@ def place_board(board: pcbnew.BOARD, plan: dict, parts_meta_path: Path) -> None:
             )
             fp.SetLocked(False)
             placed_refs.add(ref)
+
+    # 4. Zero-courtyard post-placement 180 deg uncrossing & adjacent pin-pair midpoint alignment
+    ustats = uncross_and_align_passives(board, plan, parts_meta=parts_meta)
+    print(f"  [PostPlace] 180-deg uncross flips={ustats['flips']}, pin-pair alignments={ustats['aligned']}")
