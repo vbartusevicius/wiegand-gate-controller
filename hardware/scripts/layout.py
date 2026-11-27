@@ -11,6 +11,7 @@ import kinet2pcb
 import pcbnew
 import placer
 import track_pruner
+import track_smoother
 import yaml
 from shapely.geometry import Polygon
 
@@ -655,6 +656,20 @@ def import_ses(board_name):
         f"vias {pstats['vias_before']}->{pstats['vias_after']} "
         f"(cycles={pstats['cycles_broken']}, stubs={pstats['stubs_pruned']})"
     )
+    pro_path = build_dir(board_name) / f"{board_name}.routable.kicad_pro"
+    if not pro_path.exists():
+        pro_path = stored_board_path(board_name).with_suffix(".kicad_pro")
+    sstats = track_smoother.smooth_board_tracks(
+        board,
+        pro_path=pro_path,
+        plan=plan,
+        tuned_nets=set(plan["frame"].get("tuned_nets", [])),
+    )
+    print(
+        f"{board_name}: octilinear smoother segs {sstats['segs_before']}->{sstats['segs_after']}, "
+        f"len {sstats['len_before_mm']:.1f}->{sstats['len_after_mm']:.1f} mm "
+        f"({sstats['shortcuts']} shortcuts across {sstats['nets_smoothed']} nets)"
+    )
     save(board, plan, board_name)
     widened = widen_narrow_tracks(board_name)
     if widened:
@@ -704,6 +719,26 @@ if __name__ == "__main__":
         place_parts(b, plan, args, name)
         apply_frame(b, plan)
         save(b, plan, name)
+    elif command == "smooth":
+        plan = load_plan(name)
+        b = current_board(name, plan)
+        sstats = track_smoother.smooth_board_tracks(
+            b,
+            pro_path=stored_board_path(name).with_suffix(".kicad_pro"),
+            plan=plan,
+            tuned_nets=set(plan["frame"].get("tuned_nets", [])),
+        )
+        print(
+            f"{name}: octilinear smoother segs {sstats['segs_before']}->{sstats['segs_after']}, "
+            f"len {sstats['len_before_mm']:.1f}->{sstats['len_after_mm']:.1f} mm "
+            f"({sstats['shortcuts']} shortcuts across {sstats['nets_smoothed']} nets)"
+        )
+        save(b, plan, name)
+        widen_narrow_tracks(name)
+        left = unconnected(pcbnew.LoadBoard(str(stored_board_path(name))))
+        errs = [v for v in drc_violations(stored_board_path(name), build_dir(name) / "smooth_drc.json") if v["severity"] == "error"]
+        if left or errs:
+            sys.exit(f"{name}: smooth verification failed: {len(errs)} DRC errors, {left} unrouted")
     elif command == "unroute":
         plan = load_plan(name)
         b = current_board(name, plan)
