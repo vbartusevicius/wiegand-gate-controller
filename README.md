@@ -66,6 +66,9 @@ docker compose --profile hardware run --rm -T -e JLC_LIVE=0 eda "python3 hardwar
 
 # Mechanical enclosure build + tests
 docker compose --profile hardware run --rm -T cad "python3 hardware/scripts/build.py --in-cad --test"
+
+# Package GitHub Release bundle (hardware zip + firmware bins + SHA256SUMS.txt + release table)
+python3 scripts/package_release.py
 ```
 
 ## License

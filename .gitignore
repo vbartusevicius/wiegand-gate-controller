@@ -14,5 +14,8 @@ mechanical/build/
 firmware/.pio/
 firmware/managed_components/
 firmware/build/
+dist/
+release-files/
+release-notes.md
 firmware/src/firmware/WebAssets.hpp
 firmware/src/core/BuildVersion.hpp

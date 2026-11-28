@@ -11,6 +11,7 @@ Nothing has run on physical hardware yet unless explicitly noted. Never claim be
 - `firmware/`: ESP32 C++17 firmware (PlatformIO / ESP-IDF), embedded gzip Web UI (`firmware/data/`), native Unity tests (`firmware/test/`), and mock Web UI server (`firmware/scripts/`).
 - `hardware/`: SKiDL circuit generators (`hardware/circuits/`), committed routed KiCad 10 boards (`hardware/layout/v1/`), JLCPCB/EasyEDA pin-for-pin verification (`hardware/scripts/jlc_parts.py`), fab & assembly exports (`hardware/scripts/fab_outputs.py`, `release.py`), tests (`hardware/tests/`), and frozen manufacturing releases (`hardware/releases/v1/`).
 - `mechanical/`: Parametric CadQuery enclosure (`mechanical/scripts/build_enclosure.py`), JLC3DP print plates, fit drawings, 3D renders, and solid/print-rule tests (`mechanical/tests/`).
+- `scripts/`: Shared stdlib-only GitHub Release packager (`scripts/package_release.py`) used by both CI and manual releases; unit tests in `tests/test_package_release.py`.
 - `docker/`: One folder per container image (`eda`, `cad`, `lint`, `cpp-lint`), orchestrated from root `compose.yaml`.
 - `docs/`: Wiring guide (`docs/wiring.md`, including ROGER B70/1DC) and JLCPCB/JLC3DP ordering instructions (`docs/ordering.md`).
 
@@ -34,8 +35,11 @@ Standard invocations from repo root:
   - `docker compose --profile lint run --rm -T cpp-lint "pio test -d firmware -e native"`
   - `docker compose --profile lint run --rm -T cpp-lint "pio test -d firmware -e native_sanitized"`
   - `docker compose --profile lint run --rm -T cpp-lint "cd firmware && pio run -e dev_c6"`
-- Full hardware + CAD + release + test pipeline:
-  - `python3 hardware/scripts/build.py [--eda] [--cad] [--release] [--test] [--firmware] [--fresh]`
+- Full hardware + CAD + release + test + packaging pipeline:
+  - `python3 hardware/scripts/build.py [--eda] [--cad] [--release] [--test] [--firmware] [--package] [--fresh]`
+- Package GitHub Release assets & notes table (shared by CI & manual releases):
+  - `python3 scripts/package_release.py` (outputs `dist/release/{wiegand-gate-controller-hardware.zip,usb-flash-firmware.bin,firmware.bin,SHA256SUMS.txt}` and `dist/release-notes.md`)
+  - Unit tests: `python3 -m unittest discover -s tests -v`
 
 ---
 
@@ -115,6 +119,18 @@ Follow the sibling workflow (`weather-station` / `knx-dali-gateway` / `esp-measu
   - **Web UI** (`firmware/data/` → gzip-packed into `WebAssets.hpp` by `pack_webui.py`, never hand-edited): Overview, Users & Keys (with "enroll last scanned tag"), Gate & Reader (visual scenario cards & live terminal diagram), Network (Wi-Fi & MQTT), and System (OTA dropzone & maintenance).
   - **Home Assistant**: MQTT Auto-Discovery (`lock` or `cover` entity depending on door/gate mode, `binary_sensor` for contact/moving/fault, `sensor` for last tag/user, `button` for trigger/reboot) + availability LWT.
   - **Versioning**: Derived from git/UTC build metadata at build time; never hard-code `FW_VERSION`.
+
+---
+
+## Release assets (`scripts/package_release.py`)
+
+Keep GitHub Releases minimal, self-contained, and grouped by hardware variant (one set when only `v1` exists; `<project>-<variant>-*` if multiple variants exist):
+
+- **Hardware (`wiegand-gate-controller-hardware.zip`):** Single archive containing `boards/<board>/` (Gerbers, ODB++, JLCPCB & generic BOM/CPL, routed PCB, 3D `.glb`, renders), `enclosure/` (JLC3DP print plate, STLs, STEPs, renders), and top-level `order_lcsc.csv`, `order_elsewhere.csv`, `assembly_parts.csv`.
+- **Firmware (`usb-flash-firmware.bin`, `firmware.bin`):** Only the two direct-flash `.bin` images (initial `0x0` USB-C image + Web UI OTA image) — never attach loose intermediate `.lpf`, `.json`, `.elf`, `.map`, or `.svg` files.
+- **Checksums (`SHA256SUMS.txt`):** SHA-256 checksums covering every release file.
+- **Exclude developer/tooling clutter:** Never attach `.py`, `.sh`, `.mjs`, native test/simulator binaries, or ungrouped discipline-only archives (`*-pcb*.zip`, `*-enclosure*.zip`).
+- **Single packager + release table:** Always build release archives and the `| File | Use |` Markdown release body table through `scripts/package_release.py` in both CI and manual releases.
 
 ---
 

@@ -72,6 +72,7 @@ def main():
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--firmware", action="store_true")
+    parser.add_argument("--package", action="store_true")
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--in-eda", action="store_true")
     parser.add_argument("--in-cad", action="store_true")
@@ -84,7 +85,7 @@ def main():
         run_cad(do_test=args.test)
         return
 
-    run_all = not (args.eda or args.cad or args.release or args.test or args.firmware)
+    run_all = not (args.eda or args.cad or args.release or args.test or args.firmware or args.package)
     fresh_flag = " --fresh" if args.fresh else ""
     if args.eda or run_all:
         docker_run("eda", f"python3 hardware/scripts/build.py --in-eda{fresh_flag}")
@@ -97,6 +98,8 @@ def main():
         docker_run("cad", "python3 -m pytest mechanical/tests -q -p no:cacheprovider")
     if args.firmware or run_all:
         subprocess.run([sys.executable, str(REPO / "firmware/scripts/release_firmware.py")], cwd=REPO, check=True)
+    if args.package or run_all:
+        subprocess.run([sys.executable, str(REPO / "scripts/package_release.py")], cwd=REPO, check=True)
 
 
 if __name__ == "__main__":
